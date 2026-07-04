@@ -15,7 +15,7 @@ func Load() Config {
 
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = "postgres://lazuardi:lazuardi@localhost:5432/lazuardi?sslmode=disable"
+		databaseURL = "postgres://postgres:12345678@localhost:5432/postgres?sslmode=disable"
 	}
 
 	return Config{
