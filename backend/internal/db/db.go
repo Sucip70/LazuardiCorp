@@ -26,7 +26,7 @@ func NewPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 }
 
 func RunMigrations(databaseURL string, migrationsFS embed.FS) error {
-	source, err := iofs.New(migrationsFS, "migrations")
+	source, err := iofs.New(migrationsFS, ".")
 	if err != nil {
 		return fmt.Errorf("load migrations: %w", err)
 	}

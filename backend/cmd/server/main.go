@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"embed"
 	"log"
 	"net/http"
 	"os"
@@ -18,16 +17,14 @@ import (
 	"github.com/lazuardicorp/backend/internal/db"
 	"github.com/lazuardicorp/backend/internal/handler"
 	"github.com/lazuardicorp/backend/internal/repository"
+	"github.com/lazuardicorp/backend/migrations"
 )
-
-//go:embed migrations/*.sql
-var migrationsFS embed.FS
 
 func main() {
 	cfg := config.Load()
 	ctx := context.Background()
 
-	if err := db.RunMigrations(cfg.DatabaseURL, migrationsFS); err != nil {
+	if err := db.RunMigrations(cfg.DatabaseURL, migrations.FS); err != nil {
 		log.Fatalf("migrations: %v", err)
 	}
 
