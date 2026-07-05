@@ -74,9 +74,14 @@ export default function ProjectList() {
     <main className="page">
       <header className="page-header">
         <h1>Projects</h1>
-        <Link className="button primary" to="/projects/new">
-          New Project
-        </Link>
+        <div className="flex gap-2">
+          <Link className="button" to="/templates">
+            Templates
+          </Link>
+          <Link className="button primary" to="/projects/new">
+            New Project
+          </Link>
+        </div>
       </header>
 
       {loading && <p className="status">Loading projects...</p>}
@@ -95,6 +100,9 @@ export default function ProjectList() {
                 <span className="project-preview">{previewData(project.data)}</span>
               </div>
               <div className="project-actions">
+                <Link className="button" to={`/projects/${project.id}/visual`}>
+                  Visual
+                </Link>
                 <Link className="button" to={`/projects/${project.id}`}>
                   Edit
                 </Link>

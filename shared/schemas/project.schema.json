@@ -1,0 +1,456 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lazuardicorp.dev/schemas/project.schema.json",
+  "title": "No-Code Website Builder Project",
+  "description": "Root document for a multi-page website project with nested UI components, responsive styles, and event handlers.",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "pages"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for migration compatibility."
+    },
+    "id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "URL-safe project identifier."
+    },
+    "description": {
+      "type": "string"
+    },
+    "settings": {
+      "$ref": "#/$defs/projectSettings"
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/page"
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/asset"
+      },
+      "default": []
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Extensible project-level metadata."
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$|^[a-zA-Z][a-zA-Z0-9_-]{2,63}$",
+      "description": "UUID or stable prefixed ID (e.g. cmp_hero_title)."
+    },
+    "breakpoint": {
+      "type": "string",
+      "enum": ["mobile", "tablet", "desktop"]
+    },
+    "componentType": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]*$",
+      "description": "PascalCase component type. Built-in types are documented in componentTypeRegistry; custom types are allowed for extensibility."
+    },
+    "projectSettings": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "breakpoints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mobile": { "type": "integer", "minimum": 0, "default": 0 },
+            "tablet": { "type": "integer", "minimum": 1, "default": 768 },
+            "desktop": { "type": "integer", "minimum": 1, "default": 1024 }
+          },
+          "default": {
+            "mobile": 0,
+            "tablet": 768,
+            "desktop": 1024
+          }
+        },
+        "theme": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "primaryColor": { "type": "string" },
+            "fontFamily": { "type": "string" },
+            "borderRadius": { "type": "string" }
+          }
+        },
+        "defaultLocale": {
+          "type": "string",
+          "default": "en"
+        }
+      }
+    },
+    "pageMeta": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ogImage": { "type": "string", "format": "uri" },
+        "robots": { "type": "string" },
+        "canonicalUrl": { "type": "string", "format": "uri" }
+      }
+    },
+    "page": {
+      "type": "object",
+      "required": ["id", "name", "path", "rootIds", "nodes"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/uuid" },
+        "name": { "type": "string", "minLength": 1 },
+        "path": {
+          "type": "string",
+          "pattern": "^/(?:[a-zA-Z0-9._-]+(?:/[a-zA-Z0-9._-]+)*)?$",
+          "description": "Route path. Use '/' for home page."
+        },
+        "isHome": {
+          "type": "boolean",
+          "default": false
+        },
+        "sortOrder": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "meta": { "$ref": "#/$defs/pageMeta" },
+        "rootIds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uuid" },
+          "description": "Top-level component IDs rendered in order."
+        },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/componentNode"
+          },
+          "description": "Flat map of all components on this page keyed by component ID."
+        }
+      }
+    },
+    "styleSet": {
+      "type": "object",
+      "description": "Visual styles. Prefer Tailwind className strings; raw CSS properties allowed for advanced use.",
+      "additionalProperties": true,
+      "properties": {
+        "className": {
+          "type": "string",
+          "description": "Base Tailwind/CSS classes applied at all breakpoints unless overridden."
+        },
+        "css": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Inline style key-value pairs (camelCase)."
+        },
+        "breakpoints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mobile": { "$ref": "#/$defs/breakpointStyles" },
+            "tablet": { "$ref": "#/$defs/breakpointStyles" },
+            "desktop": { "$ref": "#/$defs/breakpointStyles" }
+          }
+        }
+      }
+    },
+    "breakpointStyles": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "className": { "type": "string" },
+        "css": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "When true, component is not rendered at this breakpoint."
+        }
+      }
+    },
+    "eventHandler": {
+      "type": "object",
+      "required": ["action"],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "navigate",
+            "openUrl",
+            "scrollTo",
+            "submitForm",
+            "toggleVisibility",
+            "runScript",
+            "custom"
+          ],
+          "description": "Built-in action types. Use 'custom' with actionId for plugin extensibility."
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Action-specific data (href, target, elementId, etc.)."
+        },
+        "actionId": {
+          "type": "string",
+          "description": "Reference to a registered custom action handler."
+        },
+        "preventDefault": {
+          "type": "boolean",
+          "default": true
+        },
+        "stopPropagation": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/eventHandler"
+      },
+      "properties": {
+        "onClick": { "$ref": "#/$defs/eventHandler" },
+        "onChange": { "$ref": "#/$defs/eventHandler" },
+        "onSubmit": { "$ref": "#/$defs/eventHandler" },
+        "onFocus": { "$ref": "#/$defs/eventHandler" },
+        "onBlur": { "$ref": "#/$defs/eventHandler" },
+        "onMouseEnter": { "$ref": "#/$defs/eventHandler" },
+        "onMouseLeave": { "$ref": "#/$defs/eventHandler" },
+        "onKeyDown": { "$ref": "#/$defs/eventHandler" }
+      },
+      "description": "DOM event handlers keyed by event name (onClick, onChange, etc.)."
+    },
+    "componentMeta": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Display name in layers panel."
+        },
+        "locked": {
+          "type": "boolean",
+          "default": false
+        },
+        "hidden": {
+          "type": "boolean",
+          "default": false
+        },
+        "collapsedInTree": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "componentNode": {
+      "type": "object",
+      "required": ["id", "type", "children"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/uuid" },
+        "type": { "$ref": "#/$defs/componentType" },
+        "parentId": {
+          "oneOf": [
+            { "$ref": "#/$defs/uuid" },
+            { "type": "null" }
+          ],
+          "description": "Parent component ID. null for root-level nodes listed in page.rootIds."
+        },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/uuid" },
+          "description": "Ordered child component IDs. Empty for leaf components."
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Component-specific content and behavior properties."
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
+          },
+          "description": "Native HTML attributes (id, aria-*, data-*, role, etc.)."
+        },
+        "styles": {
+          "$ref": "#/$defs/styleSet"
+        },
+        "events": {
+          "$ref": "#/$defs/events"
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Future: dynamic data bindings (CMS fields, API paths)."
+        },
+        "meta": {
+          "$ref": "#/$defs/componentMeta"
+        }
+      },
+      "allOf": [
+        { "$ref": "#/$defs/componentTypeConstraints" }
+      ]
+    },
+    "componentTypeConstraints": {
+      "description": "Optional validation hints for known built-in component types. Unknown types remain valid via additionalProperties.",
+      "if": {
+        "properties": { "type": { "const": "Container" } },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "props": {
+            "type": "object",
+            "properties": {
+              "tag": {
+                "type": "string",
+                "enum": ["div", "section", "main", "article", "aside", "header", "footer", "nav"]
+              },
+              "layout": {
+                "type": "string",
+                "enum": ["flex", "grid", "block"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "asset": {
+      "type": "object",
+      "required": ["id", "url", "mimeType"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/uuid" },
+        "filename": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "mimeType": { "type": "string" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "alt": { "type": "string" }
+      }
+    },
+    "componentTypeRegistry": {
+      "type": "object",
+      "description": "Reference registry of built-in and custom component types for editors and validators.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["category", "acceptsChildren"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["layout", "basic", "media", "navigation", "form", "commerce", "custom"]
+          },
+          "acceptsChildren": { "type": "boolean" },
+          "defaultProps": { "type": "object", "additionalProperties": true },
+          "defaultStyles": { "$ref": "#/$defs/styleSet" },
+          "propSchema": { "type": "object", "additionalProperties": true },
+          "supportedEvents": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": true
+      },
+      "properties": {
+        "Container": {
+          "type": "object",
+          "properties": {
+            "category": { "const": "layout" },
+            "acceptsChildren": { "const": true },
+            "supportedEvents": { "type": "array", "items": { "enum": ["onClick"] } }
+          }
+        },
+        "Text": {
+          "type": "object",
+          "properties": {
+            "category": { "const": "basic" },
+            "acceptsChildren": { "const": false },
+            "supportedEvents": { "type": "array" }
+          }
+        },
+        "Image": {
+          "type": "object",
+          "properties": {
+            "category": { "const": "media" },
+            "acceptsChildren": { "const": false }
+          }
+        },
+        "Button": {
+          "type": "object",
+          "properties": {
+            "category": { "const": "basic" },
+            "acceptsChildren": { "const": false },
+            "supportedEvents": {
+              "type": "array",
+              "items": { "enum": ["onClick"] }
+            }
+          }
+        },
+        "Link": {
+          "type": "object",
+          "properties": {
+            "category": { "const": "navigation" },
+            "acceptsChildren": { "const": true },
+            "supportedEvents": {
+              "type": "array",
+              "items": { "enum": ["onClick"] }
+            }
+          }
+        },
+        "Form": {
+          "type": "object",
+          "properties": {
+            "category": { "const": "form" },
+            "acceptsChildren": { "const": true },
+            "supportedEvents": {
+              "type": "array",
+              "items": { "enum": ["onSubmit"] }
+            }
+          }
+        },
+        "Input": {
+          "type": "object",
+          "properties": {
+            "category": { "const": "form" },
+            "acceptsChildren": { "const": false },
+            "supportedEvents": {
+              "type": "array",
+              "items": { "enum": ["onChange", "onFocus", "onBlur"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Creative Portfolio",
+  "slug": "creative-portfolio",
+  "description": "Showcase your work with a clean portfolio layout.",
+  "settings": {
+    "theme": {
+      "primaryColor": "#7c3aed",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "borderRadius": "0.5rem"
+    }
+  },
+  "pages": [
+    {
+      "id": "page_home",
+      "name": "Home",
+      "path": "/",
+      "isHome": true,
+      "sortOrder": 0,
+      "meta": { "title": "Jane Doe — Portfolio" },
+      "rootIds": ["root"],
+      "nodes": {
+        "root": {
+          "id": "root",
+          "type": "Container",
+          "parentId": null,
+          "children": ["intro", "gallery"],
+          "props": { "tag": "div" },
+          "styles": { "className": "min-h-screen bg-zinc-950 text-white" },
+          "meta": { "label": "Page Root", "locked": true }
+        },
+        "intro": {
+          "id": "intro",
+          "type": "Container",
+          "parentId": "root",
+          "children": ["intro_name", "intro_role"],
+          "props": { "tag": "header" },
+          "styles": { "className": "px-8 py-24 text-center" },
+          "meta": { "label": "Intro" }
+        },
+        "intro_name": {
+          "id": "intro_name",
+          "type": "Text",
+          "parentId": "intro",
+          "children": [],
+          "props": { "as": "h1", "content": "Jane Doe" },
+          "styles": { "className": "text-5xl font-bold tracking-tight" }
+        },
+        "intro_role": {
+          "id": "intro_role",
+          "type": "Text",
+          "parentId": "intro",
+          "children": [],
+          "props": { "as": "p", "content": "Product Designer & Creative Director" },
+          "styles": { "className": "mt-4 text-violet-300 text-lg" }
+        },
+        "gallery": {
+          "id": "gallery",
+          "type": "Container",
+          "parentId": "root",
+          "children": ["gallery_title"],
+          "props": { "tag": "section" },
+          "styles": { "className": "px-8 pb-24 max-w-6xl mx-auto grid gap-8" },
+          "meta": { "label": "Work Gallery" }
+        },
+        "gallery_title": {
+          "id": "gallery_title",
+          "type": "Text",
+          "parentId": "gallery",
+          "children": [],
+          "props": { "as": "h2", "content": "Selected Work" },
+          "styles": { "className": "text-2xl font-semibold col-span-full" }
+        }
+      }
+    }
+  ]
+}

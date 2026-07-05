@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lazuardicorp.dev/schemas/component-types.registry.json",
+  "title": "Built-in Component Type Registry",
+  "description": "Reference registry for editors and validators. Add custom types here or via plugins without changing the core page document schema.",
+  "type": "object",
+  "additionalProperties": {
+    "$ref": "#/$defs/componentTypeDefinition"
+  },
+  "properties": {
+    "Container": {
+      "category": "layout",
+      "acceptsChildren": true,
+      "defaultProps": { "tag": "div", "layout": "flex" },
+      "defaultStyles": { "className": "flex flex-col gap-2" },
+      "propSchema": {
+        "tag": { "type": "enum", "values": ["div", "section", "main", "article", "aside", "header", "footer", "nav"] },
+        "layout": { "type": "enum", "values": ["flex", "grid", "block"] }
+      },
+      "supportedEvents": ["onClick"]
+    },
+    "Text": {
+      "category": "basic",
+      "acceptsChildren": false,
+      "defaultProps": { "content": "Text", "as": "p" },
+      "defaultStyles": { "className": "text-base text-gray-800" },
+      "propSchema": {
+        "content": { "type": "string", "label": "Content" },
+        "as": { "type": "enum", "values": ["p", "span", "h1", "h2", "h3", "h4", "h5", "h6", "time", "cite", "figcaption", "label"] }
+      },
+      "supportedEvents": []
+    },
+    "Image": {
+      "category": "media",
+      "acceptsChildren": false,
+      "defaultProps": { "src": "", "objectFit": "cover" },
+      "defaultStyles": { "className": "max-w-full" },
+      "propSchema": {
+        "src": { "type": "string", "format": "uri" },
+        "assetId": { "type": "string" },
+        "alt": { "type": "string" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "caption": { "type": "string" },
+        "objectFit": { "type": "enum", "values": ["cover", "contain", "fill", "none"] }
+      },
+      "supportedEvents": ["onClick"]
+    },
+    "Button": {
+      "category": "basic",
+      "acceptsChildren": false,
+      "defaultProps": { "label": "Button", "variant": "primary", "type": "button" },
+      "defaultStyles": { "className": "rounded-lg px-4 py-2 font-medium" },
+      "propSchema": {
+        "label": { "type": "string" },
+        "variant": { "type": "enum", "values": ["primary", "secondary", "ghost", "danger"] },
+        "size": { "type": "enum", "values": ["sm", "md", "lg"] },
+        "type": { "type": "enum", "values": ["button", "submit", "reset"] },
+        "disabled": { "type": "boolean" }
+      },
+      "supportedEvents": ["onClick"]
+    },
+    "Link": {
+      "category": "navigation",
+      "acceptsChildren": true,
+      "defaultProps": { "href": "/", "target": "_self" },
+      "defaultStyles": { "className": "text-blue-600 hover:underline" },
+      "propSchema": {
+        "href": { "type": "string" },
+        "target": { "type": "enum", "values": ["_self", "_blank"] },
+        "label": { "type": "string" }
+      },
+      "supportedEvents": ["onClick"]
+    },
+    "Form": {
+      "category": "form",
+      "acceptsChildren": true,
+      "defaultProps": { "method": "post", "action": "" },
+      "defaultStyles": { "className": "flex flex-col gap-3" },
+      "propSchema": {
+        "method": { "type": "enum", "values": ["get", "post"] },
+        "action": { "type": "string" },
+        "name": { "type": "string" }
+      },
+      "supportedEvents": ["onSubmit"]
+    },
+    "Input": {
+      "category": "form",
+      "acceptsChildren": false,
+      "defaultProps": { "name": "field", "inputType": "text", "required": false },
+      "defaultStyles": { "className": "rounded border px-3 py-2" },
+      "propSchema": {
+        "name": { "type": "string" },
+        "inputType": { "type": "enum", "values": ["text", "email", "password", "number", "tel", "url", "select", "textarea", "checkbox", "radio"] },
+        "placeholder": { "type": "string" },
+        "defaultValue": { "type": "string" },
+        "required": { "type": "boolean" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          }
+        }
+      },
+      "supportedEvents": ["onChange", "onFocus", "onBlur"]
+    }
+  },
+  "$defs": {
+    "componentTypeDefinition": {
+      "type": "object",
+      "required": ["category", "acceptsChildren"],
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": ["layout", "basic", "media", "navigation", "form", "commerce", "custom"]
+        },
+        "acceptsChildren": { "type": "boolean" },
+        "defaultProps": { "type": "object", "additionalProperties": true },
+        "defaultStyles": { "type": "object", "additionalProperties": true },
+        "propSchema": { "type": "object", "additionalProperties": true },
+        "supportedEvents": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "pluginId": {
+          "type": "string",
+          "description": "Optional plugin that registered this component type."
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

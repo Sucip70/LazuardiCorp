@@ -1,0 +1,431 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "proj_shop_001",
+  "name": "Modern Store",
+  "slug": "modern-store",
+  "description": "E-commerce product detail page with gallery, variants, and add-to-cart form.",
+  "settings": {
+    "breakpoints": {
+      "mobile": 0,
+      "tablet": 768,
+      "desktop": 1024
+    },
+    "theme": {
+      "primaryColor": "#059669",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "borderRadius": "0.75rem"
+    },
+    "defaultLocale": "en"
+  },
+  "assets": [
+    {
+      "id": "asset_product_main",
+      "filename": "sneaker-main.jpg",
+      "url": "https://cdn.example.com/products/sneaker-main.jpg",
+      "mimeType": "image/jpeg",
+      "width": 1200,
+      "height": 1200,
+      "alt": "Urban Runner Sneaker — main view"
+    },
+    {
+      "id": "asset_product_side",
+      "filename": "sneaker-side.jpg",
+      "url": "https://cdn.example.com/products/sneaker-side.jpg",
+      "mimeType": "image/jpeg",
+      "width": 1200,
+      "height": 1200,
+      "alt": "Urban Runner Sneaker — side view"
+    }
+  ],
+  "pages": [
+    {
+      "id": "page_product_urban_runner",
+      "name": "Urban Runner Sneaker",
+      "path": "/products/urban-runner",
+      "sortOrder": 1,
+      "meta": {
+        "title": "Urban Runner Sneaker — Modern Store",
+        "description": "Lightweight everyday sneaker with responsive cushioning.",
+        "ogImage": "https://cdn.example.com/products/sneaker-main.jpg"
+      },
+      "rootIds": ["cmp_product_root"],
+      "nodes": {
+        "cmp_product_root": {
+          "id": "cmp_product_root",
+          "type": "Container",
+          "parentId": null,
+          "children": ["cmp_breadcrumb", "cmp_product_layout"],
+          "props": { "tag": "main", "layout": "block" },
+          "styles": {
+            "className": "mx-auto max-w-6xl px-4 py-8 md:px-6 lg:py-12"
+          },
+          "meta": { "label": "Product Page Root" }
+        },
+        "cmp_breadcrumb": {
+          "id": "cmp_breadcrumb",
+          "type": "Container",
+          "parentId": "cmp_product_root",
+          "children": ["cmp_bc_home", "cmp_bc_sep", "cmp_bc_category", "cmp_bc_sep2", "cmp_bc_product"],
+          "props": { "tag": "nav", "layout": "flex" },
+          "attributes": { "aria-label": "Breadcrumb" },
+          "styles": { "className": "mb-6 flex items-center gap-2 text-sm text-gray-500" }
+        },
+        "cmp_bc_home": {
+          "id": "cmp_bc_home",
+          "type": "Link",
+          "parentId": "cmp_breadcrumb",
+          "children": ["cmp_bc_home_text"],
+          "props": { "href": "/" },
+          "events": {
+            "onClick": { "action": "navigate", "payload": { "href": "/" } }
+          }
+        },
+        "cmp_bc_home_text": {
+          "id": "cmp_bc_home_text",
+          "type": "Text",
+          "parentId": "cmp_bc_home",
+          "children": [],
+          "props": { "content": "Home", "as": "span" }
+        },
+        "cmp_bc_sep": {
+          "id": "cmp_bc_sep",
+          "type": "Text",
+          "parentId": "cmp_breadcrumb",
+          "children": [],
+          "props": { "content": "/", "as": "span" }
+        },
+        "cmp_bc_category": {
+          "id": "cmp_bc_category",
+          "type": "Link",
+          "parentId": "cmp_breadcrumb",
+          "children": ["cmp_bc_category_text"],
+          "props": { "href": "/collections/footwear" },
+          "events": {
+            "onClick": {
+              "action": "navigate",
+              "payload": { "href": "/collections/footwear" }
+            }
+          }
+        },
+        "cmp_bc_category_text": {
+          "id": "cmp_bc_category_text",
+          "type": "Text",
+          "parentId": "cmp_bc_category",
+          "children": [],
+          "props": { "content": "Footwear", "as": "span" }
+        },
+        "cmp_bc_sep2": {
+          "id": "cmp_bc_sep2",
+          "type": "Text",
+          "parentId": "cmp_breadcrumb",
+          "children": [],
+          "props": { "content": "/", "as": "span" }
+        },
+        "cmp_bc_product": {
+          "id": "cmp_bc_product",
+          "type": "Text",
+          "parentId": "cmp_breadcrumb",
+          "children": [],
+          "props": { "content": "Urban Runner", "as": "span" },
+          "styles": { "className": "text-gray-900" }
+        },
+        "cmp_product_layout": {
+          "id": "cmp_product_layout",
+          "type": "Container",
+          "parentId": "cmp_product_root",
+          "children": ["cmp_gallery", "cmp_product_details"],
+          "props": { "tag": "div", "layout": "grid" },
+          "styles": {
+            "className": "gap-10",
+            "breakpoints": {
+              "mobile": { "className": "grid grid-cols-1" },
+              "desktop": { "className": "grid grid-cols-2" }
+            }
+          }
+        },
+        "cmp_gallery": {
+          "id": "cmp_gallery",
+          "type": "Container",
+          "parentId": "cmp_product_layout",
+          "children": ["cmp_gallery_main", "cmp_gallery_thumbs"],
+          "props": { "tag": "div", "layout": "block" },
+          "styles": { "className": "flex flex-col gap-4" },
+          "meta": { "label": "Product Gallery" }
+        },
+        "cmp_gallery_main": {
+          "id": "cmp_gallery_main",
+          "type": "Image",
+          "parentId": "cmp_gallery",
+          "children": [],
+          "props": {
+            "src": "https://cdn.example.com/products/sneaker-main.jpg",
+            "assetId": "asset_product_main",
+            "objectFit": "cover"
+          },
+          "attributes": { "loading": "eager" },
+          "styles": {
+            "className": "aspect-square w-full rounded-2xl border border-gray-200 object-cover"
+          },
+          "bindings": {
+            "src": "product.images[selectedIndex]"
+          }
+        },
+        "cmp_gallery_thumbs": {
+          "id": "cmp_gallery_thumbs",
+          "type": "Container",
+          "parentId": "cmp_gallery",
+          "children": ["cmp_thumb_main", "cmp_thumb_side"],
+          "props": { "tag": "div", "layout": "flex" },
+          "styles": { "className": "flex gap-3" }
+        },
+        "cmp_thumb_main": {
+          "id": "cmp_thumb_main",
+          "type": "Button",
+          "parentId": "cmp_gallery_thumbs",
+          "children": ["cmp_thumb_main_img"],
+          "props": { "label": "View main image", "variant": "ghost" },
+          "styles": { "className": "overflow-hidden rounded-lg border-2 border-emerald-600 p-0" },
+          "events": {
+            "onClick": {
+              "action": "custom",
+              "actionId": "setProductImage",
+              "payload": { "assetId": "asset_product_main", "index": 0 }
+            }
+          }
+        },
+        "cmp_thumb_main_img": {
+          "id": "cmp_thumb_main_img",
+          "type": "Image",
+          "parentId": "cmp_thumb_main",
+          "children": [],
+          "props": {
+            "src": "https://cdn.example.com/products/sneaker-main.jpg",
+            "assetId": "asset_product_main"
+          },
+          "styles": { "className": "h-20 w-20 object-cover" }
+        },
+        "cmp_thumb_side": {
+          "id": "cmp_thumb_side",
+          "type": "Button",
+          "parentId": "cmp_gallery_thumbs",
+          "children": ["cmp_thumb_side_img"],
+          "props": { "label": "View side image", "variant": "ghost" },
+          "styles": { "className": "overflow-hidden rounded-lg border border-gray-200 p-0" },
+          "events": {
+            "onClick": {
+              "action": "custom",
+              "actionId": "setProductImage",
+              "payload": { "assetId": "asset_product_side", "index": 1 }
+            }
+          }
+        },
+        "cmp_thumb_side_img": {
+          "id": "cmp_thumb_side_img",
+          "type": "Image",
+          "parentId": "cmp_thumb_side",
+          "children": [],
+          "props": {
+            "src": "https://cdn.example.com/products/sneaker-side.jpg",
+            "assetId": "asset_product_side"
+          },
+          "styles": { "className": "h-20 w-20 object-cover" }
+        },
+        "cmp_product_details": {
+          "id": "cmp_product_details",
+          "type": "Container",
+          "parentId": "cmp_product_layout",
+          "children": [
+            "cmp_product_title",
+            "cmp_product_price",
+            "cmp_product_rating",
+            "cmp_product_description",
+            "cmp_purchase_form"
+          ],
+          "props": { "tag": "div", "layout": "block" },
+          "styles": { "className": "flex flex-col gap-5" },
+          "meta": { "label": "Product Details" }
+        },
+        "cmp_product_title": {
+          "id": "cmp_product_title",
+          "type": "Text",
+          "parentId": "cmp_product_details",
+          "children": [],
+          "props": { "content": "Urban Runner Sneaker", "as": "h1" },
+          "styles": {
+            "className": "font-bold text-gray-900",
+            "breakpoints": {
+              "mobile": { "className": "text-2xl" },
+              "desktop": { "className": "text-3xl" }
+            }
+          },
+          "bindings": { "content": "product.name" }
+        },
+        "cmp_product_price": {
+          "id": "cmp_product_price",
+          "type": "Text",
+          "parentId": "cmp_product_details",
+          "children": [],
+          "props": { "content": "$129.00", "as": "p" },
+          "styles": { "className": "text-2xl font-semibold text-emerald-700" },
+          "bindings": { "content": "product.priceFormatted" }
+        },
+        "cmp_product_rating": {
+          "id": "cmp_product_rating",
+          "type": "Text",
+          "parentId": "cmp_product_details",
+          "children": [],
+          "props": { "content": "★★★★☆ 4.6 (218 reviews)", "as": "p" },
+          "styles": { "className": "text-sm text-gray-600" }
+        },
+        "cmp_product_description": {
+          "id": "cmp_product_description",
+          "type": "Text",
+          "parentId": "cmp_product_details",
+          "children": [],
+          "props": {
+            "content": "Built for daily wear with breathable mesh, responsive foam, and a durable rubber outsole. Available in multiple sizes and colors.",
+            "as": "p"
+          },
+          "styles": { "className": "leading-relaxed text-gray-700" },
+          "bindings": { "content": "product.description" }
+        },
+        "cmp_purchase_form": {
+          "id": "cmp_purchase_form",
+          "type": "Form",
+          "parentId": "cmp_product_details",
+          "children": [
+            "cmp_size_label",
+            "cmp_size_input",
+            "cmp_qty_label",
+            "cmp_qty_input",
+            "cmp_add_to_cart_btn"
+          ],
+          "props": {
+            "method": "post",
+            "action": "/api/cart/add",
+            "name": "purchaseForm"
+          },
+          "attributes": { "data-product-id": "prod_urban_runner" },
+          "styles": {
+            "className": "mt-4 flex flex-col gap-4 rounded-xl border border-gray-200 p-4"
+          },
+          "events": {
+            "onSubmit": {
+              "action": "submitForm",
+              "payload": {
+                "endpoint": "/api/cart/add",
+                "method": "POST",
+                "successNavigate": "/cart"
+              },
+              "preventDefault": true
+            }
+          },
+          "meta": { "label": "Purchase Form" }
+        },
+        "cmp_size_label": {
+          "id": "cmp_size_label",
+          "type": "Text",
+          "parentId": "cmp_purchase_form",
+          "children": [],
+          "props": { "content": "Size", "as": "label" },
+          "attributes": { "for": "cmp_size_input" },
+          "styles": { "className": "text-sm font-medium text-gray-700" }
+        },
+        "cmp_size_input": {
+          "id": "cmp_size_input",
+          "type": "Input",
+          "parentId": "cmp_purchase_form",
+          "children": [],
+          "props": {
+            "name": "size",
+            "inputType": "select",
+            "options": [
+              { "label": "US 8", "value": "8" },
+              { "label": "US 9", "value": "9" },
+              { "label": "US 10", "value": "10" },
+              { "label": "US 11", "value": "11" }
+            ],
+            "required": true,
+            "defaultValue": "9"
+          },
+          "attributes": { "id": "cmp_size_input" },
+          "styles": {
+            "className": "w-full rounded-lg border border-gray-300 px-3 py-2"
+          },
+          "events": {
+            "onChange": {
+              "action": "custom",
+              "actionId": "updateSelectedVariant",
+              "payload": { "field": "size" }
+            }
+          }
+        },
+        "cmp_qty_label": {
+          "id": "cmp_qty_label",
+          "type": "Text",
+          "parentId": "cmp_purchase_form",
+          "children": [],
+          "props": { "content": "Quantity", "as": "label" },
+          "attributes": { "for": "cmp_qty_input" },
+          "styles": { "className": "text-sm font-medium text-gray-700" }
+        },
+        "cmp_qty_input": {
+          "id": "cmp_qty_input",
+          "type": "Input",
+          "parentId": "cmp_purchase_form",
+          "children": [],
+          "props": {
+            "name": "quantity",
+            "inputType": "number",
+            "min": 1,
+            "max": 10,
+            "defaultValue": "1",
+            "required": true
+          },
+          "attributes": { "id": "cmp_qty_input" },
+          "styles": {
+            "className": "w-full rounded-lg border border-gray-300 px-3 py-2"
+          },
+          "events": {
+            "onChange": {
+              "action": "custom",
+              "actionId": "updateCartQuantity",
+              "payload": { "field": "quantity" }
+            }
+          }
+        },
+        "cmp_add_to_cart_btn": {
+          "id": "cmp_add_to_cart_btn",
+          "type": "Button",
+          "parentId": "cmp_purchase_form",
+          "children": [],
+          "props": {
+            "label": "Add to cart",
+            "variant": "primary",
+            "type": "submit"
+          },
+          "styles": {
+            "className": "mt-2 w-full rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-white hover:bg-emerald-700",
+            "breakpoints": {
+              "mobile": { "className": "w-full" },
+              "desktop": { "className": "w-full max-w-sm" }
+            }
+          },
+          "events": {
+            "onClick": {
+              "action": "submitForm",
+              "payload": { "formId": "cmp_purchase_form" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "meta": {
+    "commerce": {
+      "currency": "USD",
+      "productId": "prod_urban_runner",
+      "sku": "UR-SNKR-001"
+    }
+  }
+}

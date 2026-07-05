@@ -1,0 +1,346 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "proj_blog_001",
+  "name": "Tech Blog",
+  "slug": "tech-blog",
+  "description": "Blog project with article layout, rich content, and images.",
+  "settings": {
+    "breakpoints": {
+      "mobile": 0,
+      "tablet": 768,
+      "desktop": 1024
+    },
+    "theme": {
+      "primaryColor": "#111827",
+      "fontFamily": "Georgia, Cambria, serif",
+      "borderRadius": "0.25rem"
+    }
+  },
+  "assets": [
+    {
+      "id": "asset_cover",
+      "filename": "react-19-cover.jpg",
+      "url": "https://cdn.example.com/blog/react-19-cover.jpg",
+      "mimeType": "image/jpeg",
+      "width": 1600,
+      "height": 900,
+      "alt": "React 19 release illustration"
+    },
+    {
+      "id": "asset_inline_diagram",
+      "filename": "compiler-diagram.png",
+      "url": "https://cdn.example.com/blog/compiler-diagram.png",
+      "mimeType": "image/png",
+      "width": 800,
+      "height": 450,
+      "alt": "React compiler pipeline diagram"
+    }
+  ],
+  "pages": [
+    {
+      "id": "page_article_react19",
+      "name": "React 19 Overview",
+      "path": "/blog/react-19-overview",
+      "sortOrder": 1,
+      "meta": {
+        "title": "React 19 Overview — Tech Blog",
+        "description": "A practical look at React 19 features for modern web apps.",
+        "keywords": ["react", "javascript", "frontend"],
+        "ogImage": "https://cdn.example.com/blog/react-19-cover.jpg",
+        "canonicalUrl": "https://blog.example.com/blog/react-19-overview"
+      },
+      "rootIds": ["cmp_article_root"],
+      "nodes": {
+        "cmp_article_root": {
+          "id": "cmp_article_root",
+          "type": "Container",
+          "parentId": null,
+          "children": ["cmp_article_header", "cmp_article_body", "cmp_article_footer"],
+          "props": { "tag": "article", "layout": "block" },
+          "styles": {
+            "className": "mx-auto max-w-3xl px-4 py-10 text-gray-800 md:px-6 lg:py-16"
+          },
+          "meta": { "label": "Article Root" }
+        },
+        "cmp_article_header": {
+          "id": "cmp_article_header",
+          "type": "Container",
+          "parentId": "cmp_article_root",
+          "children": [
+            "cmp_article_category",
+            "cmp_article_title",
+            "cmp_article_meta",
+            "cmp_article_cover"
+          ],
+          "props": { "tag": "header", "layout": "block" },
+          "styles": { "className": "mb-10 flex flex-col gap-4 border-b border-gray-200 pb-8" },
+          "meta": { "label": "Article Header" }
+        },
+        "cmp_article_category": {
+          "id": "cmp_article_category",
+          "type": "Link",
+          "parentId": "cmp_article_header",
+          "children": ["cmp_article_category_text"],
+          "props": { "href": "/blog/category/frontend" },
+          "styles": { "className": "inline-block" },
+          "events": {
+            "onClick": {
+              "action": "navigate",
+              "payload": { "href": "/blog/category/frontend" }
+            }
+          }
+        },
+        "cmp_article_category_text": {
+          "id": "cmp_article_category_text",
+          "type": "Text",
+          "parentId": "cmp_article_category",
+          "children": [],
+          "props": { "content": "Frontend", "as": "span" },
+          "styles": {
+            "className": "rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-700"
+          }
+        },
+        "cmp_article_title": {
+          "id": "cmp_article_title",
+          "type": "Text",
+          "parentId": "cmp_article_header",
+          "children": [],
+          "props": {
+            "content": "React 19: What Changed and Why It Matters",
+            "as": "h1"
+          },
+          "styles": {
+            "className": "font-serif font-bold text-gray-900",
+            "breakpoints": {
+              "mobile": { "className": "text-3xl leading-tight" },
+              "desktop": { "className": "text-5xl leading-tight" }
+            }
+          },
+          "meta": { "label": "Article Title" }
+        },
+        "cmp_article_meta": {
+          "id": "cmp_article_meta",
+          "type": "Container",
+          "parentId": "cmp_article_header",
+          "children": ["cmp_article_author", "cmp_article_date", "cmp_article_read_time"],
+          "props": { "tag": "div", "layout": "flex" },
+          "styles": {
+            "className": "flex flex-wrap gap-3 text-sm text-gray-500"
+          }
+        },
+        "cmp_article_author": {
+          "id": "cmp_article_author",
+          "type": "Text",
+          "parentId": "cmp_article_meta",
+          "children": [],
+          "props": { "content": "By Jane Developer", "as": "span" }
+        },
+        "cmp_article_date": {
+          "id": "cmp_article_date",
+          "type": "Text",
+          "parentId": "cmp_article_meta",
+          "children": [],
+          "props": { "content": "March 12, 2026", "as": "time" },
+          "attributes": { "datetime": "2026-03-12" }
+        },
+        "cmp_article_read_time": {
+          "id": "cmp_article_read_time",
+          "type": "Text",
+          "parentId": "cmp_article_meta",
+          "children": [],
+          "props": { "content": "8 min read", "as": "span" }
+        },
+        "cmp_article_cover": {
+          "id": "cmp_article_cover",
+          "type": "Image",
+          "parentId": "cmp_article_header",
+          "children": [],
+          "props": {
+            "src": "https://cdn.example.com/blog/react-19-cover.jpg",
+            "assetId": "asset_cover",
+            "caption": "React 19 brings a new compiler and improved server components."
+          },
+          "attributes": { "loading": "eager" },
+          "styles": {
+            "className": "mt-4 w-full rounded-lg object-cover",
+            "breakpoints": {
+              "mobile": { "css": { "maxHeight": "220px" } },
+              "desktop": { "css": { "maxHeight": "420px" } }
+            }
+          },
+          "meta": { "label": "Cover Image" }
+        },
+        "cmp_article_body": {
+          "id": "cmp_article_body",
+          "type": "Container",
+          "parentId": "cmp_article_root",
+          "children": [
+            "cmp_para_intro",
+            "cmp_para_compiler",
+            "cmp_inline_image",
+            "cmp_para_actions",
+            "cmp_quote_block"
+          ],
+          "props": { "tag": "div", "layout": "block" },
+          "styles": { "className": "prose prose-lg max-w-none flex flex-col gap-6" },
+          "meta": { "label": "Article Body" }
+        },
+        "cmp_para_intro": {
+          "id": "cmp_para_intro",
+          "type": "Text",
+          "parentId": "cmp_article_body",
+          "children": [],
+          "props": {
+            "content": "React 19 continues the shift toward simpler mental models, automatic optimizations, and first-class support for server-driven UI. In this post, we explore the highlights and how they affect real-world applications.",
+            "as": "p"
+          },
+          "styles": { "className": "text-lg leading-relaxed text-gray-700" }
+        },
+        "cmp_para_compiler": {
+          "id": "cmp_para_compiler",
+          "type": "Text",
+          "parentId": "cmp_article_body",
+          "children": [],
+          "props": {
+            "content": "The React Compiler reduces the need for manual memoization. Components can re-render more predictably without wrapping everything in useMemo and useCallback. For teams building design systems and no-code tools, this means less generated boilerplate in exported code.",
+            "as": "p"
+          },
+          "styles": { "className": "leading-relaxed text-gray-700" }
+        },
+        "cmp_inline_image": {
+          "id": "cmp_inline_image",
+          "type": "Container",
+          "parentId": "cmp_article_body",
+          "children": ["cmp_inline_image_el", "cmp_inline_image_caption"],
+          "props": { "tag": "figure", "layout": "block" },
+          "styles": { "className": "my-4" }
+        },
+        "cmp_inline_image_el": {
+          "id": "cmp_inline_image_el",
+          "type": "Image",
+          "parentId": "cmp_inline_image",
+          "children": [],
+          "props": {
+            "src": "https://cdn.example.com/blog/compiler-diagram.png",
+            "assetId": "asset_inline_diagram"
+          },
+          "attributes": { "loading": "lazy" },
+          "styles": { "className": "w-full rounded-md border border-gray-200" }
+        },
+        "cmp_inline_image_caption": {
+          "id": "cmp_inline_image_caption",
+          "type": "Text",
+          "parentId": "cmp_inline_image",
+          "children": [],
+          "props": {
+            "content": "Figure 1. Simplified React Compiler pipeline.",
+            "as": "figcaption"
+          },
+          "styles": { "className": "mt-2 text-center text-sm text-gray-500" }
+        },
+        "cmp_para_actions": {
+          "id": "cmp_para_actions",
+          "type": "Text",
+          "parentId": "cmp_article_body",
+          "children": [],
+          "props": {
+            "content": "Actions (formerly Server Actions patterns in client code) provide a structured way to wire form submissions and mutations directly from components — a natural fit for no-code event handler configuration.",
+            "as": "p"
+          },
+          "styles": { "className": "leading-relaxed text-gray-700" }
+        },
+        "cmp_quote_block": {
+          "id": "cmp_quote_block",
+          "type": "Container",
+          "parentId": "cmp_article_body",
+          "children": ["cmp_quote_text", "cmp_quote_cite"],
+          "props": { "tag": "blockquote", "layout": "block" },
+          "styles": {
+            "className": "border-l-4 border-gray-900 pl-4 italic text-gray-800"
+          }
+        },
+        "cmp_quote_text": {
+          "id": "cmp_quote_text",
+          "type": "Text",
+          "parentId": "cmp_quote_block",
+          "children": [],
+          "props": {
+            "content": "The best abstractions disappear. React 19 moves complexity into the framework so product teams can focus on experience.",
+            "as": "p"
+          }
+        },
+        "cmp_quote_cite": {
+          "id": "cmp_quote_cite",
+          "type": "Text",
+          "parentId": "cmp_quote_block",
+          "children": [],
+          "props": { "content": "— React core team", "as": "cite" },
+          "styles": { "className": "mt-2 block text-sm not-italic text-gray-500" }
+        },
+        "cmp_article_footer": {
+          "id": "cmp_article_footer",
+          "type": "Container",
+          "parentId": "cmp_article_root",
+          "children": ["cmp_share_label", "cmp_share_buttons"],
+          "props": { "tag": "footer", "layout": "block" },
+          "styles": { "className": "mt-12 border-t border-gray-200 pt-8" },
+          "meta": { "label": "Article Footer" }
+        },
+        "cmp_share_label": {
+          "id": "cmp_share_label",
+          "type": "Text",
+          "parentId": "cmp_article_footer",
+          "children": [],
+          "props": { "content": "Share this article", "as": "h2" },
+          "styles": { "className": "mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500" }
+        },
+        "cmp_share_buttons": {
+          "id": "cmp_share_buttons",
+          "type": "Container",
+          "parentId": "cmp_article_footer",
+          "children": ["cmp_share_twitter", "cmp_share_linkedin"],
+          "props": { "tag": "div", "layout": "flex" },
+          "styles": { "className": "flex gap-3" }
+        },
+        "cmp_share_twitter": {
+          "id": "cmp_share_twitter",
+          "type": "Button",
+          "parentId": "cmp_share_buttons",
+          "children": [],
+          "props": { "label": "Share on X", "variant": "secondary" },
+          "styles": {
+            "className": "rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+          },
+          "events": {
+            "onClick": {
+              "action": "openUrl",
+              "payload": {
+                "href": "https://twitter.com/intent/tweet?url=https://blog.example.com/blog/react-19-overview",
+                "target": "_blank"
+              }
+            }
+          }
+        },
+        "cmp_share_linkedin": {
+          "id": "cmp_share_linkedin",
+          "type": "Button",
+          "parentId": "cmp_share_buttons",
+          "children": [],
+          "props": { "label": "Share on LinkedIn", "variant": "secondary" },
+          "styles": {
+            "className": "rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
+          },
+          "events": {
+            "onClick": {
+              "action": "openUrl",
+              "payload": {
+                "href": "https://www.linkedin.com/sharing/share-offsite/?url=https://blog.example.com/blog/react-19-overview",
+                "target": "_blank"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

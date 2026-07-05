@@ -1,0 +1,574 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "proj_landing_001",
+  "name": "SaaS Landing Page",
+  "slug": "saas-landing",
+  "description": "Marketing landing page with header, hero, features, and footer.",
+  "settings": {
+    "breakpoints": {
+      "mobile": 0,
+      "tablet": 768,
+      "desktop": 1024
+    },
+    "theme": {
+      "primaryColor": "#2563eb",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "borderRadius": "0.5rem"
+    },
+    "defaultLocale": "en"
+  },
+  "assets": [
+    {
+      "id": "asset_logo",
+      "filename": "logo.svg",
+      "url": "https://cdn.example.com/assets/logo.svg",
+      "mimeType": "image/svg+xml",
+      "alt": "Acme Logo"
+    },
+    {
+      "id": "asset_hero",
+      "filename": "hero-dashboard.png",
+      "url": "https://cdn.example.com/assets/hero-dashboard.png",
+      "mimeType": "image/png",
+      "width": 1200,
+      "height": 800,
+      "alt": "Product dashboard preview"
+    }
+  ],
+  "pages": [
+    {
+      "id": "page_home",
+      "name": "Home",
+      "path": "/",
+      "isHome": true,
+      "sortOrder": 0,
+      "meta": {
+        "title": "Acme — Build faster with no code",
+        "description": "Launch beautiful websites without writing code.",
+        "keywords": ["no-code", "website builder", "saas"],
+        "ogImage": "https://cdn.example.com/assets/hero-dashboard.png"
+      },
+      "rootIds": ["cmp_page_root"],
+      "nodes": {
+        "cmp_page_root": {
+          "id": "cmp_page_root",
+          "type": "Container",
+          "parentId": null,
+          "children": ["cmp_header", "cmp_hero", "cmp_features", "cmp_footer"],
+          "props": { "tag": "div", "layout": "block" },
+          "styles": {
+            "className": "min-h-screen bg-white text-gray-900"
+          },
+          "meta": { "label": "Page Root", "locked": true }
+        },
+        "cmp_header": {
+          "id": "cmp_header",
+          "type": "Container",
+          "parentId": "cmp_page_root",
+          "children": ["cmp_header_inner"],
+          "props": { "tag": "header", "layout": "block" },
+          "styles": {
+            "className": "sticky top-0 z-50 border-b border-gray-200 bg-white/90 backdrop-blur",
+            "breakpoints": {
+              "mobile": { "className": "px-4 py-3" },
+              "tablet": { "className": "px-6 py-4" },
+              "desktop": { "className": "px-8 py-4" }
+            }
+          },
+          "meta": { "label": "Header" }
+        },
+        "cmp_header_inner": {
+          "id": "cmp_header_inner",
+          "type": "Container",
+          "parentId": "cmp_header",
+          "children": ["cmp_logo", "cmp_nav", "cmp_header_cta"],
+          "props": { "tag": "div", "layout": "flex" },
+          "styles": {
+            "className": "mx-auto flex max-w-6xl items-center justify-between",
+            "breakpoints": {
+              "mobile": { "className": "flex-col gap-4" },
+              "desktop": { "className": "flex-row gap-8" }
+            }
+          },
+          "meta": { "label": "Header Inner" }
+        },
+        "cmp_logo": {
+          "id": "cmp_logo",
+          "type": "Link",
+          "parentId": "cmp_header_inner",
+          "children": ["cmp_logo_image"],
+          "props": { "href": "/", "label": "Acme home" },
+          "styles": { "className": "inline-flex items-center" },
+          "events": {
+            "onClick": {
+              "action": "navigate",
+              "payload": { "href": "/" },
+              "preventDefault": false
+            }
+          },
+          "meta": { "label": "Logo Link" }
+        },
+        "cmp_logo_image": {
+          "id": "cmp_logo_image",
+          "type": "Image",
+          "parentId": "cmp_logo",
+          "children": [],
+          "props": {
+            "src": "https://cdn.example.com/assets/logo.svg",
+            "assetId": "asset_logo",
+            "width": 120,
+            "height": 32
+          },
+          "attributes": { "loading": "eager", "decoding": "async" },
+          "styles": { "className": "h-8 w-auto" },
+          "meta": { "label": "Logo" }
+        },
+        "cmp_nav": {
+          "id": "cmp_nav",
+          "type": "Container",
+          "parentId": "cmp_header_inner",
+          "children": ["cmp_nav_features", "cmp_nav_pricing", "cmp_nav_docs"],
+          "props": { "tag": "nav", "layout": "flex" },
+          "attributes": { "aria-label": "Main navigation" },
+          "styles": {
+            "className": "flex gap-6 text-sm font-medium text-gray-600",
+            "breakpoints": {
+              "mobile": { "hidden": true },
+              "desktop": { "hidden": false }
+            }
+          },
+          "meta": { "label": "Navigation" }
+        },
+        "cmp_nav_features": {
+          "id": "cmp_nav_features",
+          "type": "Link",
+          "parentId": "cmp_nav",
+          "children": ["cmp_nav_features_text"],
+          "props": { "href": "#features" },
+          "events": {
+            "onClick": {
+              "action": "scrollTo",
+              "payload": { "elementId": "cmp_features", "behavior": "smooth" }
+            }
+          },
+          "meta": { "label": "Nav: Features" }
+        },
+        "cmp_nav_features_text": {
+          "id": "cmp_nav_features_text",
+          "type": "Text",
+          "parentId": "cmp_nav_features",
+          "children": [],
+          "props": { "content": "Features", "as": "span" },
+          "styles": { "className": "hover:text-gray-900" }
+        },
+        "cmp_nav_pricing": {
+          "id": "cmp_nav_pricing",
+          "type": "Link",
+          "parentId": "cmp_nav",
+          "children": ["cmp_nav_pricing_text"],
+          "props": { "href": "/pricing" },
+          "events": {
+            "onClick": {
+              "action": "navigate",
+              "payload": { "href": "/pricing" }
+            }
+          }
+        },
+        "cmp_nav_pricing_text": {
+          "id": "cmp_nav_pricing_text",
+          "type": "Text",
+          "parentId": "cmp_nav_pricing",
+          "children": [],
+          "props": { "content": "Pricing", "as": "span" },
+          "styles": { "className": "hover:text-gray-900" }
+        },
+        "cmp_nav_docs": {
+          "id": "cmp_nav_docs",
+          "type": "Link",
+          "parentId": "cmp_nav",
+          "children": ["cmp_nav_docs_text"],
+          "props": { "href": "https://docs.example.com", "target": "_blank" },
+          "events": {
+            "onClick": {
+              "action": "openUrl",
+              "payload": { "href": "https://docs.example.com", "target": "_blank" }
+            }
+          }
+        },
+        "cmp_nav_docs_text": {
+          "id": "cmp_nav_docs_text",
+          "type": "Text",
+          "parentId": "cmp_nav_docs",
+          "children": [],
+          "props": { "content": "Docs", "as": "span" },
+          "styles": { "className": "hover:text-gray-900" }
+        },
+        "cmp_header_cta": {
+          "id": "cmp_header_cta",
+          "type": "Button",
+          "parentId": "cmp_header_inner",
+          "children": [],
+          "props": {
+            "label": "Get Started",
+            "variant": "primary",
+            "size": "sm"
+          },
+          "styles": {
+            "className": "rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          },
+          "events": {
+            "onClick": {
+              "action": "navigate",
+              "payload": { "href": "/signup" }
+            }
+          },
+          "meta": { "label": "Header CTA" }
+        },
+        "cmp_hero": {
+          "id": "cmp_hero",
+          "type": "Container",
+          "parentId": "cmp_page_root",
+          "children": ["cmp_hero_inner"],
+          "props": { "tag": "section", "layout": "block" },
+          "attributes": { "aria-labelledby": "cmp_hero_title" },
+          "styles": {
+            "className": "bg-gradient-to-b from-blue-50 to-white",
+            "breakpoints": {
+              "mobile": { "className": "px-4 py-12" },
+              "tablet": { "className": "px-6 py-16" },
+              "desktop": { "className": "px-8 py-24" }
+            }
+          },
+          "meta": { "label": "Hero Section" }
+        },
+        "cmp_hero_inner": {
+          "id": "cmp_hero_inner",
+          "type": "Container",
+          "parentId": "cmp_hero",
+          "children": ["cmp_hero_copy", "cmp_hero_image"],
+          "props": { "tag": "div", "layout": "grid" },
+          "styles": {
+            "className": "mx-auto max-w-6xl items-center gap-10",
+            "breakpoints": {
+              "mobile": { "className": "grid grid-cols-1 gap-8" },
+              "desktop": { "className": "grid grid-cols-2 gap-12" }
+            }
+          }
+        },
+        "cmp_hero_copy": {
+          "id": "cmp_hero_copy",
+          "type": "Container",
+          "parentId": "cmp_hero_inner",
+          "children": ["cmp_hero_title", "cmp_hero_subtitle", "cmp_hero_actions"],
+          "props": { "tag": "div", "layout": "flex" },
+          "styles": { "className": "flex flex-col gap-6" }
+        },
+        "cmp_hero_title": {
+          "id": "cmp_hero_title",
+          "type": "Text",
+          "parentId": "cmp_hero_copy",
+          "children": [],
+          "props": {
+            "content": "Build websites without writing code",
+            "as": "h1"
+          },
+          "attributes": { "id": "cmp_hero_title" },
+          "styles": {
+            "className": "font-bold tracking-tight text-gray-900",
+            "breakpoints": {
+              "mobile": { "className": "text-3xl" },
+              "tablet": { "className": "text-4xl" },
+              "desktop": { "className": "text-5xl" }
+            }
+          }
+        },
+        "cmp_hero_subtitle": {
+          "id": "cmp_hero_subtitle",
+          "type": "Text",
+          "parentId": "cmp_hero_copy",
+          "children": [],
+          "props": {
+            "content": "Design, publish, and iterate on beautiful pages with drag-and-drop components and responsive layouts.",
+            "as": "p"
+          },
+          "styles": {
+            "className": "text-gray-600",
+            "breakpoints": {
+              "mobile": { "className": "text-base" },
+              "desktop": { "className": "text-lg leading-relaxed" }
+            }
+          }
+        },
+        "cmp_hero_actions": {
+          "id": "cmp_hero_actions",
+          "type": "Container",
+          "parentId": "cmp_hero_copy",
+          "children": ["cmp_hero_primary_btn", "cmp_hero_secondary_btn"],
+          "props": { "tag": "div", "layout": "flex" },
+          "styles": {
+            "className": "flex gap-3",
+            "breakpoints": {
+              "mobile": { "className": "flex-col" },
+              "tablet": { "className": "flex-row" }
+            }
+          }
+        },
+        "cmp_hero_primary_btn": {
+          "id": "cmp_hero_primary_btn",
+          "type": "Button",
+          "parentId": "cmp_hero_actions",
+          "children": [],
+          "props": { "label": "Start free trial", "variant": "primary" },
+          "styles": {
+            "className": "rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+          },
+          "events": {
+            "onClick": {
+              "action": "navigate",
+              "payload": { "href": "/signup" }
+            }
+          }
+        },
+        "cmp_hero_secondary_btn": {
+          "id": "cmp_hero_secondary_btn",
+          "type": "Button",
+          "parentId": "cmp_hero_actions",
+          "children": [],
+          "props": { "label": "View demo", "variant": "secondary" },
+          "styles": {
+            "className": "rounded-lg border border-gray-300 px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50"
+          },
+          "events": {
+            "onClick": {
+              "action": "openUrl",
+              "payload": { "href": "https://demo.example.com", "target": "_blank" }
+            }
+          }
+        },
+        "cmp_hero_image": {
+          "id": "cmp_hero_image",
+          "type": "Image",
+          "parentId": "cmp_hero_inner",
+          "children": [],
+          "props": {
+            "src": "https://cdn.example.com/assets/hero-dashboard.png",
+            "assetId": "asset_hero",
+            "objectFit": "cover"
+          },
+          "attributes": { "loading": "lazy" },
+          "styles": {
+            "className": "w-full rounded-2xl border border-gray-200 shadow-xl"
+          }
+        },
+        "cmp_features": {
+          "id": "cmp_features",
+          "type": "Container",
+          "parentId": "cmp_page_root",
+          "children": ["cmp_features_inner"],
+          "props": { "tag": "section", "layout": "block" },
+          "attributes": { "id": "cmp_features" },
+          "styles": {
+            "className": "mx-auto max-w-6xl px-4 py-16 md:px-6 lg:px-8 lg:py-24"
+          },
+          "meta": { "label": "Features Section" }
+        },
+        "cmp_features_inner": {
+          "id": "cmp_features_inner",
+          "type": "Container",
+          "parentId": "cmp_features",
+          "children": ["cmp_features_title", "cmp_features_grid"],
+          "props": { "tag": "div", "layout": "block" },
+          "styles": { "className": "flex flex-col gap-10" }
+        },
+        "cmp_features_title": {
+          "id": "cmp_features_title",
+          "type": "Text",
+          "parentId": "cmp_features_inner",
+          "children": [],
+          "props": { "content": "Everything you need to launch", "as": "h2" },
+          "styles": { "className": "text-center text-3xl font-bold text-gray-900" }
+        },
+        "cmp_features_grid": {
+          "id": "cmp_features_grid",
+          "type": "Container",
+          "parentId": "cmp_features_inner",
+          "children": ["cmp_feature_1", "cmp_feature_2", "cmp_feature_3"],
+          "props": { "tag": "div", "layout": "grid" },
+          "styles": {
+            "className": "grid gap-6",
+            "breakpoints": {
+              "mobile": { "className": "grid-cols-1" },
+              "tablet": { "className": "grid-cols-2" },
+              "desktop": { "className": "grid-cols-3" }
+            }
+          }
+        },
+        "cmp_feature_1": {
+          "id": "cmp_feature_1",
+          "type": "Container",
+          "parentId": "cmp_features_grid",
+          "children": ["cmp_feature_1_title", "cmp_feature_1_desc"],
+          "props": { "tag": "article", "layout": "block" },
+          "styles": { "className": "rounded-xl border border-gray-200 p-6" },
+          "meta": { "label": "Feature: Drag & Drop" }
+        },
+        "cmp_feature_1_title": {
+          "id": "cmp_feature_1_title",
+          "type": "Text",
+          "parentId": "cmp_feature_1",
+          "children": [],
+          "props": { "content": "Drag & drop editor", "as": "h3" },
+          "styles": { "className": "text-lg font-semibold text-gray-900" }
+        },
+        "cmp_feature_1_desc": {
+          "id": "cmp_feature_1_desc",
+          "type": "Text",
+          "parentId": "cmp_feature_1",
+          "children": [],
+          "props": {
+            "content": "Compose pages visually with nested containers and reusable blocks.",
+            "as": "p"
+          },
+          "styles": { "className": "mt-2 text-sm text-gray-600" }
+        },
+        "cmp_feature_2": {
+          "id": "cmp_feature_2",
+          "type": "Container",
+          "parentId": "cmp_features_grid",
+          "children": ["cmp_feature_2_title", "cmp_feature_2_desc"],
+          "props": { "tag": "article", "layout": "block" },
+          "styles": { "className": "rounded-xl border border-gray-200 p-6" },
+          "meta": { "label": "Feature: Responsive" }
+        },
+        "cmp_feature_2_title": {
+          "id": "cmp_feature_2_title",
+          "type": "Text",
+          "parentId": "cmp_feature_2",
+          "children": [],
+          "props": { "content": "Responsive by default", "as": "h3" },
+          "styles": { "className": "text-lg font-semibold text-gray-900" }
+        },
+        "cmp_feature_2_desc": {
+          "id": "cmp_feature_2_desc",
+          "type": "Text",
+          "parentId": "cmp_feature_2",
+          "children": [],
+          "props": {
+            "content": "Configure mobile, tablet, and desktop styles per component.",
+            "as": "p"
+          },
+          "styles": { "className": "mt-2 text-sm text-gray-600" }
+        },
+        "cmp_feature_3": {
+          "id": "cmp_feature_3",
+          "type": "Container",
+          "parentId": "cmp_features_grid",
+          "children": ["cmp_feature_3_title", "cmp_feature_3_desc"],
+          "props": { "tag": "article", "layout": "block" },
+          "styles": { "className": "rounded-xl border border-gray-200 p-6" },
+          "meta": { "label": "Feature: Publish" }
+        },
+        "cmp_feature_3_title": {
+          "id": "cmp_feature_3_title",
+          "type": "Text",
+          "parentId": "cmp_feature_3",
+          "children": [],
+          "props": { "content": "One-click publish", "as": "h3" },
+          "styles": { "className": "text-lg font-semibold text-gray-900" }
+        },
+        "cmp_feature_3_desc": {
+          "id": "cmp_feature_3_desc",
+          "type": "Text",
+          "parentId": "cmp_feature_3",
+          "children": [],
+          "props": {
+            "content": "Deploy static sites or host on your custom domain instantly.",
+            "as": "p"
+          },
+          "styles": { "className": "mt-2 text-sm text-gray-600" }
+        },
+        "cmp_footer": {
+          "id": "cmp_footer",
+          "type": "Container",
+          "parentId": "cmp_page_root",
+          "children": ["cmp_footer_inner"],
+          "props": { "tag": "footer", "layout": "block" },
+          "styles": { "className": "border-t border-gray-200 bg-gray-50" },
+          "meta": { "label": "Footer" }
+        },
+        "cmp_footer_inner": {
+          "id": "cmp_footer_inner",
+          "type": "Container",
+          "parentId": "cmp_footer",
+          "children": ["cmp_footer_copy", "cmp_footer_links"],
+          "props": { "tag": "div", "layout": "flex" },
+          "styles": {
+            "className": "mx-auto max-w-6xl items-center justify-between px-4 py-8",
+            "breakpoints": {
+              "mobile": { "className": "flex-col gap-4 text-center" },
+              "desktop": { "className": "flex-row gap-8 text-left" }
+            }
+          }
+        },
+        "cmp_footer_copy": {
+          "id": "cmp_footer_copy",
+          "type": "Text",
+          "parentId": "cmp_footer_inner",
+          "children": [],
+          "props": { "content": "© 2026 Acme Inc. All rights reserved.", "as": "p" },
+          "styles": { "className": "text-sm text-gray-500" }
+        },
+        "cmp_footer_links": {
+          "id": "cmp_footer_links",
+          "type": "Container",
+          "parentId": "cmp_footer_inner",
+          "children": ["cmp_footer_privacy", "cmp_footer_terms"],
+          "props": { "tag": "div", "layout": "flex" },
+          "styles": { "className": "flex gap-4 text-sm" }
+        },
+        "cmp_footer_privacy": {
+          "id": "cmp_footer_privacy",
+          "type": "Link",
+          "parentId": "cmp_footer_links",
+          "children": ["cmp_footer_privacy_text"],
+          "props": { "href": "/privacy" },
+          "events": {
+            "onClick": {
+              "action": "navigate",
+              "payload": { "href": "/privacy" }
+            }
+          }
+        },
+        "cmp_footer_privacy_text": {
+          "id": "cmp_footer_privacy_text",
+          "type": "Text",
+          "parentId": "cmp_footer_privacy",
+          "children": [],
+          "props": { "content": "Privacy", "as": "span" },
+          "styles": { "className": "text-gray-600 hover:text-gray-900" }
+        },
+        "cmp_footer_terms": {
+          "id": "cmp_footer_terms",
+          "type": "Link",
+          "parentId": "cmp_footer_links",
+          "children": ["cmp_footer_terms_text"],
+          "props": { "href": "/terms" },
+          "events": {
+            "onClick": {
+              "action": "navigate",
+              "payload": { "href": "/terms" }
+            }
+          }
+        },
+        "cmp_footer_terms_text": {
+          "id": "cmp_footer_terms_text",
+          "type": "Text",
+          "parentId": "cmp_footer_terms",
+          "children": [],
+          "props": { "content": "Terms", "as": "span" },
+          "styles": { "className": "text-gray-600 hover:text-gray-900" }
+        }
+      }
+    }
+  ]
+}

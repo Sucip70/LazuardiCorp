@@ -1,125 +1,165 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 
-	"github.com/lazuardicorp/backend/internal/model"
-	"github.com/lazuardicorp/backend/internal/repository"
+	"github.com/lazuardicorp/backend/internal/dto"
+	"github.com/lazuardicorp/backend/internal/generator"
+	"github.com/lazuardicorp/backend/internal/service"
 )
 
 type ProjectHandler struct {
-	repo *repository.ProjectRepository
+	projects *service.ProjectService
+	export   *service.ExportService
 }
 
-func NewProjectHandler(repo *repository.ProjectRepository) *ProjectHandler {
-	return &ProjectHandler{repo: repo}
+func NewProjectHandler(projects *service.ProjectService, export *service.ExportService) *ProjectHandler {
+	return &ProjectHandler{projects: projects, export: export}
 }
 
-func (h *ProjectHandler) Routes() chi.Router {
-	r := chi.NewRouter()
-	r.Get("/", h.List)
-	r.Post("/", h.Create)
-	r.Get("/{id}", h.Get)
-	r.Put("/{id}", h.Update)
-	r.Delete("/{id}", h.Delete)
-	return r
-}
-
-func (h *ProjectHandler) List(w http.ResponseWriter, r *http.Request) {
-	projects, err := h.repo.List(r.Context())
+func (h *ProjectHandler) List(c *gin.Context) {
+	items, err := h.projects.List(mustUserID(c))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list projects")
+		writeError(c, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, projects)
+	c.JSON(http.StatusOK, dto.ProjectListResponse{Projects: items})
 }
 
-func (h *ProjectHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	project, err := h.repo.GetByID(r.Context(), id)
+func (h *ProjectHandler) Create(c *gin.Context) {
+	var req dto.CreateProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	item, err := h.projects.Create(mustUserID(c), req)
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			writeError(w, http.StatusNotFound, "project not found")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "failed to get project")
+		writeError(c, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, project)
+	c.JSON(http.StatusCreated, item)
 }
 
-func (h *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) {
-	input, err := decodeProjectInput(r)
+func (h *ProjectHandler) Get(c *gin.Context) {
+	item, err := h.projects.Get(mustUserID(c), parseUUID(c, "id"))
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(c, err)
 		return
 	}
+	c.JSON(http.StatusOK, item)
+}
 
-	project, err := h.repo.Create(r.Context(), input.Data)
+func (h *ProjectHandler) Update(c *gin.Context) {
+	var req dto.UpdateProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	item, err := h.projects.Update(mustUserID(c), parseUUID(c, "id"), req)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to create project")
+		writeError(c, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, project)
+	c.JSON(http.StatusOK, item)
 }
 
-func (h *ProjectHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	input, err := decodeProjectInput(r)
+func (h *ProjectHandler) Delete(c *gin.Context) {
+	if err := h.projects.Delete(c.Request.Context(), mustUserID(c), parseUUID(c, "id")); err != nil {
+		writeError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *ProjectHandler) Duplicate(c *gin.Context) {
+	var req dto.DuplicateProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	item, err := h.projects.Duplicate(mustUserID(c), parseUUID(c, "id"), req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(c, err)
 		return
 	}
+	c.JSON(http.StatusCreated, item)
+}
 
-	project, err := h.repo.Update(r.Context(), id, input.Data)
+func (h *ProjectHandler) ListTemplates(c *gin.Context) {
+	items, err := h.projects.ListTemplates()
 	if err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			writeError(w, http.StatusNotFound, "project not found")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "failed to update project")
+		writeError(c, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, project)
+	c.JSON(http.StatusOK, dto.ProjectListResponse{Projects: items})
 }
 
-func (h *ProjectHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if err := h.repo.Delete(r.Context(), id); err != nil {
-		if errors.Is(err, repository.ErrNotFound) {
-			writeError(w, http.StatusNotFound, "project not found")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "failed to delete project")
+func (h *ProjectHandler) Export(c *gin.Context) {
+	format := generator.ParseFormat(c.Query("format"))
+	data, filename, err := h.export.ExportProjectZIP(mustUserID(c), parseUUID(c, "id"), format)
+	if err != nil {
+		writeError(c, err)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	c.Header("Content-Type", "application/zip")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("X-Export-Format", format.String())
+	c.Data(http.StatusOK, "application/zip", data)
 }
 
-func decodeProjectInput(r *http.Request) (model.ProjectInput, error) {
-	var input model.ProjectInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		return model.ProjectInput{}, errors.New("invalid JSON body")
+// Legacy routes for existing frontend (/api/projects)
+func (h *ProjectHandler) LegacyList(c *gin.Context) {
+	items, err := h.projects.LegacyList(mustUserID(c))
+	if err != nil {
+		writeError(c, err)
+		return
 	}
-	if len(input.Data) == 0 {
-		return model.ProjectInput{}, errors.New("data field is required")
-	}
-	if !json.Valid(input.Data) {
-		return model.ProjectInput{}, errors.New("data must be valid JSON")
-	}
-	return input, nil
+	c.JSON(http.StatusOK, items)
 }
 
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+func (h *ProjectHandler) LegacyCreate(c *gin.Context) {
+	var req dto.LegacyProjectPayload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	item, err := h.projects.LegacyCreate(mustUserID(c), req.Data)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, item)
 }
 
-func writeError(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, map[string]string{"error": message})
+func (h *ProjectHandler) LegacyGet(c *gin.Context) {
+	item, err := h.projects.LegacyGet(mustUserID(c), c.Param("id"))
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, item)
+}
+
+func (h *ProjectHandler) LegacyUpdate(c *gin.Context) {
+	var req dto.LegacyProjectPayload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	item, err := h.projects.LegacyUpdate(mustUserID(c), c.Param("id"), req.Data)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, item)
+}
+
+func (h *ProjectHandler) LegacyDelete(c *gin.Context) {
+	if err := h.projects.LegacyDelete(c.Request.Context(), mustUserID(c), c.Param("id")); err != nil {
+		writeError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }

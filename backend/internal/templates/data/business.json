@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Corporate Business",
+  "slug": "corporate-business",
+  "description": "Professional business site with services and contact CTA.",
+  "settings": {
+    "theme": {
+      "primaryColor": "#1e40af",
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "borderRadius": "0.375rem"
+    }
+  },
+  "pages": [
+    {
+      "id": "page_home",
+      "name": "Home",
+      "path": "/",
+      "isHome": true,
+      "sortOrder": 0,
+      "meta": { "title": "Acme Corp — Business Solutions" },
+      "rootIds": ["root"],
+      "nodes": {
+        "root": {
+          "id": "root",
+          "type": "Container",
+          "parentId": null,
+          "children": ["hero", "services"],
+          "props": { "tag": "div" },
+          "styles": { "className": "min-h-screen bg-slate-50 text-slate-900" },
+          "meta": { "label": "Page Root", "locked": true }
+        },
+        "hero": {
+          "id": "hero",
+          "type": "Container",
+          "parentId": "root",
+          "children": ["hero_title", "hero_sub"],
+          "props": { "tag": "section" },
+          "styles": { "className": "px-8 py-20 text-center bg-white border-b" },
+          "meta": { "label": "Hero" }
+        },
+        "hero_title": {
+          "id": "hero_title",
+          "type": "Text",
+          "parentId": "hero",
+          "children": [],
+          "props": { "as": "h1", "content": "Grow your business with confidence" },
+          "styles": { "className": "text-4xl font-bold mb-4" }
+        },
+        "hero_sub": {
+          "id": "hero_sub",
+          "type": "Text",
+          "parentId": "hero",
+          "children": [],
+          "props": { "as": "p", "content": "Strategy, consulting, and digital transformation." },
+          "styles": { "className": "text-lg text-slate-600 max-w-2xl mx-auto" }
+        },
+        "services": {
+          "id": "services",
+          "type": "Container",
+          "parentId": "root",
+          "children": ["svc_title"],
+          "props": { "tag": "section" },
+          "styles": { "className": "px-8 py-16 max-w-5xl mx-auto" },
+          "meta": { "label": "Services" }
+        },
+        "svc_title": {
+          "id": "svc_title",
+          "type": "Text",
+          "parentId": "services",
+          "children": [],
+          "props": { "as": "h2", "content": "Our Services" },
+          "styles": { "className": "text-2xl font-semibold mb-8" }
+        }
+      }
+    }
+  ]
+}

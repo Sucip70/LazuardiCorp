@@ -1,76 +1,97 @@
 package main
 
 import (
-	"context"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+	"fmt"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
+	"go.uber.org/zap"
 
+	"github.com/lazuardicorp/backend/internal/cache"
 	"github.com/lazuardicorp/backend/internal/config"
-	"github.com/lazuardicorp/backend/internal/db"
-	"github.com/lazuardicorp/backend/internal/handler"
+	"github.com/lazuardicorp/backend/internal/database"
+	"github.com/lazuardicorp/backend/internal/deploy"
+	"github.com/lazuardicorp/backend/internal/logger"
 	"github.com/lazuardicorp/backend/internal/repository"
-	"github.com/lazuardicorp/backend/migrations"
+	"github.com/lazuardicorp/backend/internal/router"
+	"github.com/lazuardicorp/backend/internal/service"
+	"github.com/lazuardicorp/backend/internal/storage"
 )
 
 func main() {
 	cfg := config.Load()
-	ctx := context.Background()
 
-	if err := db.RunMigrations(cfg.DatabaseURL, migrations.FS); err != nil {
-		log.Fatalf("migrations: %v", err)
-	}
-
-	pool, err := db.NewPool(ctx, cfg.DatabaseURL)
+	log, err := logger.New()
 	if err != nil {
-		log.Fatalf("database: %v", err)
+		panic(err)
 	}
-	defer pool.Close()
+	defer log.Sync()
 
-	repo := repository.NewProjectRepository(pool)
-	projectHandler := handler.NewProjectHandler(repo)
+	db, err := database.Connect(cfg.DatabaseURL, log)
+	if err != nil {
+		log.Fatal("database connection failed", zap.Error(err))
+	}
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
-		AllowCredentials: true,
-	}))
+	cacheStore, err := cache.NewStore(cfg.Redis)
+	if err != nil {
+		log.Fatal("redis init failed", zap.Error(err))
+	}
+	if cacheStore.Enabled() {
+		log.Info("redis cache connected")
+	} else {
+		log.Info("redis not configured — caching disabled")
+	}
 
-	r.Route("/api/projects", func(r chi.Router) {
-		r.Mount("/", projectHandler.Routes())
+	store, err := storage.New(cfg.Storage)
+	if err != nil {
+		log.Fatal("storage init failed", zap.Error(err))
+	}
+	log.Info("storage backend ready", zap.String("provider", store.ProviderName()))
+
+	userRepo := repository.NewUserRepository(db)
+	projectRepo := repository.NewProjectRepository(db)
+	pageRepo := repository.NewPageRepository(db)
+	assetRepo := repository.NewAssetRepository(db)
+	componentRepo := repository.NewComponentRepository(db)
+	deployRepo := repository.NewDeployRepository(db)
+	templateRepo := repository.NewTemplateRepository(db)
+
+	invalidator := service.NewCacheInvalidator(cacheStore, log)
+	sessionService := service.NewSessionService(cacheStore, cfg.JWTExpiry)
+
+	authService := service.NewAuthService(userRepo, sessionService, cfg)
+	assetService := service.NewAssetService(assetRepo, projectRepo, store, cfg.Assets, cfg.CDN, invalidator)
+	projectService := service.NewProjectService(projectRepo, pageRepo, assetService, invalidator)
+	pageService := service.NewPageService(projectRepo, pageRepo, invalidator)
+	exportService := service.NewExportService(projectService, pageService, assetService)
+	previewService := service.NewPreviewService(exportService, pageRepo, projectRepo, cacheStore, cfg.Cache.PreviewTTL, invalidator)
+	componentService := service.NewComponentService(componentRepo, cacheStore, cfg.Cache.ComponentsTTL, invalidator)
+
+	deployRegistry, err := deploy.NewRegistry(cfg.Deploy)
+	if err != nil {
+		log.Warn("S3 deploy provider unavailable", zap.Error(err))
+	}
+	deployService := service.NewDeployService(projectService, exportService, deployRepo, deployRegistry, cfg.Deploy, log)
+	pageService.SetAutoDeployTrigger(deployService)
+	templateService := service.NewTemplateService(templateRepo, projectRepo, pageRepo, invalidator)
+
+	engine := router.New(router.Dependencies{
+		Config:     cfg,
+		Log:        log,
+		Cache:      cacheStore,
+		Auth:       authService,
+		Projects:   projectService,
+		Pages:      pageService,
+		Assets:     assetService,
+		Export:     exportService,
+		Preview:    previewService,
+		Components: componentService,
+		Deploy:     deployService,
+		Templates:  templateService,
+		Storage:    store,
 	})
 
-	server := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: r,
-	}
-
-	go func() {
-		log.Printf("server listening on :%s", cfg.Port)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server: %v", err)
-		}
-	}()
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("shutdown: %v", err)
+	addr := fmt.Sprintf(":%s", cfg.Port)
+	log.Info("server starting", zap.String("addr", addr))
+	if err := engine.Run(addr); err != nil {
+		log.Fatal("server stopped", zap.Error(err))
 	}
 }

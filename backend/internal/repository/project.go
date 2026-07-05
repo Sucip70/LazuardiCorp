@@ -1,88 +1,83 @@
 package repository
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/lazuardicorp/backend/internal/model"
 )
 
-var ErrNotFound = errors.New("project not found")
-
 type ProjectRepository struct {
-	pool *pgxpool.Pool
+	db *gorm.DB
 }
 
-func NewProjectRepository(pool *pgxpool.Pool) *ProjectRepository {
-	return &ProjectRepository{pool: pool}
+func NewProjectRepository(db *gorm.DB) *ProjectRepository {
+	return &ProjectRepository{db: db}
 }
 
-func (r *ProjectRepository) List(ctx context.Context) ([]model.Project, error) {
-	rows, err := r.pool.Query(ctx, `SELECT id, data FROM project ORDER BY id`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var projects []model.Project
-	for rows.Next() {
-		var p model.Project
-		if err := rows.Scan(&p.ID, &p.Data); err != nil {
-			return nil, err
-		}
-		projects = append(projects, p)
-	}
-
-	if projects == nil {
-		projects = []model.Project{}
-	}
-
-	return projects, rows.Err()
+func (r *ProjectRepository) Create(project *model.Project) error {
+	return r.db.Create(project).Error
 }
 
-func (r *ProjectRepository) GetByID(ctx context.Context, id string) (model.Project, error) {
-	var p model.Project
-	err := r.pool.QueryRow(ctx, `SELECT id, data FROM project WHERE id = $1`, id).Scan(&p.ID, &p.Data)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return model.Project{}, ErrNotFound
-	}
-	return p, err
+func (r *ProjectRepository) Update(project *model.Project) error {
+	return r.db.Save(project).Error
 }
 
-func (r *ProjectRepository) Create(ctx context.Context, data json.RawMessage) (model.Project, error) {
-	var p model.Project
-	err := r.pool.QueryRow(
-		ctx,
-		`INSERT INTO project (data) VALUES ($1) RETURNING id, data`,
-		data,
-	).Scan(&p.ID, &p.Data)
-	return p, err
-}
-
-func (r *ProjectRepository) Update(ctx context.Context, id string, data json.RawMessage) (model.Project, error) {
-	var p model.Project
-	err := r.pool.QueryRow(
-		ctx,
-		`UPDATE project SET data = $2 WHERE id = $1 RETURNING id, data`,
-		id, data,
-	).Scan(&p.ID, &p.Data)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return model.Project{}, ErrNotFound
+func (r *ProjectRepository) Delete(id, userID uuid.UUID) error {
+	result := r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&model.Project{})
+	if result.Error != nil {
+		return result.Error
 	}
-	return p, err
-}
-
-func (r *ProjectRepository) Delete(ctx context.Context, id string) error {
-	tag, err := r.pool.Exec(ctx, `DELETE FROM project WHERE id = $1`, id)
-	if err != nil {
-		return err
-	}
-	if tag.RowsAffected() == 0 {
+	if result.RowsAffected == 0 {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (r *ProjectRepository) FindByID(id, userID uuid.UUID) (*model.Project, error) {
+	var project model.Project
+	err := r.db.Preload("Pages", func(db *gorm.DB) *gorm.DB {
+		return db.Order("sort_order ASC")
+	}).Where("id = ? AND user_id = ?", id, userID).First(&project).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	return &project, err
+}
+
+func (r *ProjectRepository) ListByUser(userID uuid.UUID) ([]model.Project, error) {
+	var projects []model.Project
+	err := r.db.Where("user_id = ?", userID).Order("updated_at DESC").Find(&projects).Error
+	return projects, err
+}
+
+func (r *ProjectRepository) ListTemplates() ([]model.Project, error) {
+	var projects []model.Project
+	err := r.db.Where("is_template = ?", true).Order("name ASC").Find(&projects).Error
+	return projects, err
+}
+
+func (r *ProjectRepository) FindByIDOnly(id uuid.UUID) (*model.Project, error) {
+	var project model.Project
+	err := r.db.Preload("Pages", func(db *gorm.DB) *gorm.DB {
+		return db.Order("sort_order ASC")
+	}).First(&project, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrNotFound
+	}
+	return &project, err
+}
+
+func (r *ProjectRepository) SlugExists(userID uuid.UUID, slug string, excludeID *uuid.UUID) (bool, error) {
+	query := r.db.Model(&model.Project{}).Where("user_id = ? AND slug = ?", userID, slug)
+	if excludeID != nil {
+		query = query.Where("id <> ?", *excludeID)
+	}
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
