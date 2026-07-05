@@ -1,3 +1,5 @@
+import { getToken } from './auth'
+
 export class ApiError extends Error {
   status: number
 
@@ -8,12 +10,18 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(init?.headers as Record<string, string> | undefined),
+  }
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
   const response = await fetch(path, {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...init?.headers,
-    },
+    headers,
   })
 
   if (response.status === 204) {

@@ -1,4 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { RequireAuth } from './components/RequireAuth'
+import LoginPage from './pages/LoginPage'
 import NewProjectPage from './pages/NewProjectPage'
 import ProjectEditor from './pages/ProjectEditor'
 import ProjectList from './pages/ProjectList'
@@ -10,12 +12,13 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<ProjectList />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<RequireAuth><ProjectList /></RequireAuth>} />
         <Route path="/templates" element={<TemplatesPage />} />
-        <Route path="/projects/new" element={<NewProjectPage />} />
-        <Route path="/projects/:id" element={<ProjectEditor />} />
-        <Route path="/projects/:id/visual" element={<VisualEditorPage />} />
-        <Route path="/editor" element={<VisualEditorPage />} />
+        <Route path="/projects/new" element={<RequireAuth><NewProjectPage /></RequireAuth>} />
+        <Route path="/projects/:id" element={<RequireAuth><ProjectEditor /></RequireAuth>} />
+        <Route path="/projects/:id/visual" element={<RequireAuth><VisualEditorPage /></RequireAuth>} />
+        <Route path="/editor" element={<RequireAuth><VisualEditorPage /></RequireAuth>} />
         <Route path="/renderer-demo" element={<RendererDemoPage />} />
       </Routes>
     </BrowserRouter>

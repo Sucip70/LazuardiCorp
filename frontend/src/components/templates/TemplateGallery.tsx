@@ -72,7 +72,12 @@ export function TemplateGallery({ mode = 'browse', onApplied }: TemplateGalleryP
         navigate(`/projects/${project.id}/visual`)
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to create project')
+      if (err instanceof ApiError && err.status === 401) {
+        setError('Session expired. Please sign in again.')
+        navigate('/login', { state: { from: '/projects/new' } })
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Failed to create project')
+      }
     } finally {
       setApplying(false)
     }
