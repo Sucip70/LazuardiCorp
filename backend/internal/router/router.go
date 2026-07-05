@@ -71,6 +71,8 @@ func New(deps Dependencies) *gin.Engine {
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/logout", authMiddleware, authHandler.Logout)
 			auth.GET("/me", authMiddleware, authHandler.Me)
+			auth.PUT("/me", authMiddleware, authHandler.UpdateProfile)
+			auth.PUT("/password", authMiddleware, authHandler.ChangePassword)
 		}
 
 		v1.GET("/components",

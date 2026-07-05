@@ -41,3 +41,7 @@ func (r *UserRepository) FindByID(id uuid.UUID) (*model.User, error) {
 	}
 	return &user, err
 }
+
+func (r *UserRepository) Update(user *model.User) error {
+	return r.db.Save(user).Error
+}

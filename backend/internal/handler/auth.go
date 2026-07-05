@@ -56,6 +56,33 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	var req dto.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	resp, err := h.auth.UpdateProfile(middleware.MustUserID(c), req)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	var req dto.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+	if err := h.auth.ChangePassword(middleware.MustUserID(c), req); err != nil {
+		writeError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h *AuthHandler) Logout(c *gin.Context) {
 	token, _ := c.Get("authToken")
 	tokenStr, _ := token.(string)

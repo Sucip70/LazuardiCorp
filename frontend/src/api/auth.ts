@@ -1,4 +1,5 @@
 import { apiFetch } from './client'
+import { clearUserCache } from '../hooks/useCurrentUser'
 
 const TOKEN_KEY = 'lazuardi_auth_token'
 
@@ -23,6 +24,7 @@ export function setToken(token: string) {
 
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY)
+  clearUserCache()
 }
 
 export function isAuthenticated(): boolean {
@@ -57,6 +59,20 @@ export function logout(): Promise<void> {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   }).catch(() => undefined)
+}
+
+export function updateProfile(name: string): Promise<User> {
+  return apiFetch<User>('/api/v1/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify({ name }),
+  })
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  return apiFetch<void>('/api/v1/auth/password', {
+    method: 'PUT',
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  })
 }
 
 export function fetchMe(): Promise<User> {

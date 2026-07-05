@@ -118,6 +118,34 @@ func (s *AuthService) Me(userID uuid.UUID) (dto.UserResponse, error) {
 	return toUserResponse(user), nil
 }
 
+func (s *AuthService) UpdateProfile(userID uuid.UUID, req dto.UpdateProfileRequest) (dto.UserResponse, error) {
+	user, err := s.users.FindByID(userID)
+	if err != nil {
+		return dto.UserResponse{}, err
+	}
+	user.Name = req.Name
+	if err := s.users.Update(user); err != nil {
+		return dto.UserResponse{}, err
+	}
+	return toUserResponse(user), nil
+}
+
+func (s *AuthService) ChangePassword(userID uuid.UUID, req dto.ChangePasswordRequest) error {
+	user, err := s.users.FindByID(userID)
+	if err != nil {
+		return err
+	}
+	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)) != nil {
+		return ErrUnauthorized
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.PasswordHash = string(hash)
+	return s.users.Update(user)
+}
+
 func (s *AuthService) ParseToken(tokenString string) (uuid.UUID, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
 		return s.secret, nil

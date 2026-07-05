@@ -21,3 +21,12 @@ type UserResponse struct {
 	Email string `json:"email"`
 	Name  string `json:"name"`
 }
+
+type UpdateProfileRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=8"`
+}
