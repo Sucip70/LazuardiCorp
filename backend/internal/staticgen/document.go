@@ -89,6 +89,11 @@ func normalizeInput(input any) (*PageDocument, error) {
 		if _, hasRoot := v["rootIds"]; hasRoot {
 			return normalizeFlatDocument(v)
 		}
+		if pages, ok := v["pages"].([]any); ok && len(pages) > 0 {
+			if pageMap, ok := pages[0].(map[string]any); ok {
+				return normalizeInput(pageMap)
+			}
+		}
 		if _, hasType := v["type"]; hasType {
 			return normalizeSingleTree(v)
 		}

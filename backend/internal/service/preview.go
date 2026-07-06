@@ -36,6 +36,31 @@ func NewPreviewService(
 	}
 }
 
+func (s *PreviewService) GetHomeHTML(ctx context.Context, userID, projectID uuid.UUID) (string, error) {
+	if _, err := s.projects.FindByID(projectID, userID); err != nil {
+		return "", err
+	}
+	pages, err := s.pages.ListByProject(projectID)
+	if err != nil {
+		return "", err
+	}
+	if len(pages) == 0 {
+		return "", repository.ErrNotFound
+	}
+
+	var home *model.Page
+	for i := range pages {
+		if pages[i].IsHome {
+			home = &pages[i]
+			break
+		}
+	}
+	if home == nil {
+		home = &pages[0]
+	}
+	return s.GetHTML(ctx, userID, projectID, home.ID)
+}
+
 func (s *PreviewService) GetHTML(ctx context.Context, userID, projectID, pageID uuid.UUID) (string, error) {
 	if _, err := s.projects.FindByID(projectID, userID); err != nil {
 		return "", err

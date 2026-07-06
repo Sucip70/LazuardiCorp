@@ -13,10 +13,15 @@ import (
 type ProjectHandler struct {
 	projects *service.ProjectService
 	export   *service.ExportService
+	preview  *service.PreviewService
 }
 
-func NewProjectHandler(projects *service.ProjectService, export *service.ExportService) *ProjectHandler {
-	return &ProjectHandler{projects: projects, export: export}
+func NewProjectHandler(
+	projects *service.ProjectService,
+	export *service.ExportService,
+	preview *service.PreviewService,
+) *ProjectHandler {
+	return &ProjectHandler{projects: projects, export: export, preview: preview}
 }
 
 func (h *ProjectHandler) List(c *gin.Context) {
@@ -94,6 +99,16 @@ func (h *ProjectHandler) ListTemplates(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, dto.ProjectListResponse{Projects: items})
+}
+
+func (h *ProjectHandler) PreviewHome(c *gin.Context) {
+	html, err := h.preview.GetHomeHTML(c.Request.Context(), mustUserID(c), parseUUID(c, "id"))
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	c.String(http.StatusOK, html)
 }
 
 func (h *ProjectHandler) Export(c *gin.Context) {

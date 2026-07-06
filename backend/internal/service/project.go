@@ -243,7 +243,7 @@ func (s *ProjectService) LegacyCreate(userID uuid.UUID, data json.RawMessage) (d
 	if err != nil || len(pages) == 0 {
 		return dto.LegacyProjectResponse{}, errors.New("home page missing")
 	}
-	pages[0].Document = jsonOrEmpty(data)
+	pages[0].Document = jsonOrEmpty(extractPageDocument(data))
 	if err := s.pages.Update(&pages[0]); err != nil {
 		return dto.LegacyProjectResponse{}, err
 	}
@@ -282,7 +282,7 @@ func (s *ProjectService) LegacyUpdate(userID uuid.UUID, id string, data json.Raw
 	if err != nil || len(pages) == 0 {
 		return dto.LegacyProjectResponse{}, repository.ErrNotFound
 	}
-	pages[0].Document = jsonOrEmpty(data)
+	pages[0].Document = jsonOrEmpty(extractPageDocument(data))
 	if err := s.pages.Update(&pages[0]); err != nil {
 		return dto.LegacyProjectResponse{}, err
 	}
@@ -311,4 +311,37 @@ func (s *ProjectService) LegacyDelete(ctx context.Context, userID uuid.UUID, id 
 		return ErrInvalidInput
 	}
 	return s.Delete(ctx, userID, projectID)
+}
+
+func extractPageDocument(data json.RawMessage) json.RawMessage {
+	if len(data) == 0 {
+		return data
+	}
+	var generic any
+	if err := json.Unmarshal(data, &generic); err != nil {
+		return data
+	}
+	obj, ok := generic.(map[string]any)
+	if !ok {
+		return data
+	}
+	if _, hasRoot := obj["rootIds"]; hasRoot {
+		return data
+	}
+	pages, ok := obj["pages"].([]any)
+	if !ok || len(pages) == 0 {
+		return data
+	}
+	page, ok := pages[0].(map[string]any)
+	if !ok {
+		return data
+	}
+	if _, hasRoot := page["rootIds"]; !hasRoot {
+		return data
+	}
+	encoded, err := json.Marshal(page)
+	if err != nil {
+		return data
+	}
+	return encoded
 }

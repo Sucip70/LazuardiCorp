@@ -38,7 +38,7 @@ func New(deps Dependencies) *gin.Engine {
 	r.Use(middleware.CDNCacheHeaders(deps.Config.CDN))
 
 	authHandler := handler.NewAuthHandler(deps.Auth)
-	projectHandler := handler.NewProjectHandler(deps.Projects, deps.Export)
+	projectHandler := handler.NewProjectHandler(deps.Projects, deps.Export, deps.Preview)
 	pageHandler := handler.NewPageHandler(deps.Pages, deps.Preview)
 	assetHandler := handler.NewAssetHandler(deps.Assets)
 	componentHandler := handler.NewComponentHandler(deps.Components)
@@ -123,6 +123,7 @@ func New(deps Dependencies) *gin.Engine {
 				projects.POST("/:id/duplicate", projectHandler.Duplicate)
 				projects.POST("/:id/as-template", templateHandler.SaveProjectAsTemplate)
 				projects.GET("/:id/export", projectHandler.Export)
+				projects.GET("/:id/preview", projectHandler.PreviewHome)
 
 				deployCfg := projects.Group("/:id/deploy")
 				{
@@ -174,6 +175,7 @@ func New(deps Dependencies) *gin.Engine {
 		legacy.GET("", projectHandler.LegacyList)
 		legacy.POST("", projectHandler.LegacyCreate)
 		legacy.GET("/:id", projectHandler.LegacyGet)
+		legacy.GET("/:id/preview", projectHandler.PreviewHome)
 		legacy.PUT("/:id", projectHandler.LegacyUpdate)
 		legacy.DELETE("/:id", projectHandler.LegacyDelete)
 	}

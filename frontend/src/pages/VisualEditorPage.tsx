@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 
 import { getProject, updateProject } from '../api/projects'
+import { fetchProjectPreview, openPreviewHtml } from '../api/preview'
 import { SaveAsTemplateModal } from '../components/templates/SaveAsTemplateModal'
 import { createEmptyDocument } from '../components/registry'
 
@@ -187,19 +188,20 @@ export default function VisualEditorPage() {
 
 
 
-  const handlePreview = useCallback(() => {
-
-    if (id) {
-
-      window.open(`/api/v1/projects/${id}/pages/page_home/preview`, '_blank')
-
+  const handlePreview = useCallback(async () => {
+    if (!id) {
+      setPreviewMode(true)
       return
-
     }
 
-    setPreviewMode(true)
-
-  }, [id, setPreviewMode])
+    try {
+      await persist()
+      openPreviewHtml(await fetchProjectPreview(id))
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Preview failed'
+      setSaveStatus('error', message)
+    }
+  }, [id, persist, setPreviewMode, setSaveStatus])
 
 
 
