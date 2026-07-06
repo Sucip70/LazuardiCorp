@@ -35,8 +35,8 @@ export function RuntimeNodeRenderer({
   const interactiveProps: Record<string, (...args: unknown[]) => void> = {}
 
   const childElements =
-    entry.acceptsChildren !== false && node.children.length > 0
-      ? node.children.map((childId) => {
+    entry.acceptsChildren !== false && (node.children?.length ?? 0) > 0
+      ? (node.children ?? []).map((childId) => {
           if (renderChild) return renderChild(childId)
           const child = nodes[childId]
           if (!child) return null

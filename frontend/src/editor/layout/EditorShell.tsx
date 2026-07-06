@@ -1,6 +1,7 @@
 import { EditorDndProvider } from '../dnd/EditorDndProvider'
 import { useEditorResponsive } from '../hooks/useEditorResponsive'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { EditorErrorModal } from '../panels/EditorErrorModal'
 import { useUIStore } from '../store/uiStore'
 import { useEditorStore } from '../store/editorStore'
 import { Canvas } from '../canvas/Canvas'
@@ -33,6 +34,8 @@ export function EditorShell({
   const setLeftOpen = useUIStore((s) => s.setLeftSidebarOpen)
   const setRightOpen = useUIStore((s) => s.setRightSidebarOpen)
   const previewMode = useUIStore((s) => s.previewMode)
+  const editorError = useUIStore((s) => s.editorError)
+  const setEditorError = useUIStore((s) => s.setEditorError)
   const nodes = useEditorStore((s) => s.nodes)
   const { isCompact, isWide } = useEditorResponsive()
 
@@ -107,6 +110,11 @@ export function EditorShell({
 
         <StatusBar nodeCount={nodeCount} projectId={projectId} />
       </div>
+      <EditorErrorModal
+        open={editorError !== null}
+        message={editorError ?? ''}
+        onClose={() => setEditorError(null)}
+      />
     </EditorDndProvider>
   )
 }

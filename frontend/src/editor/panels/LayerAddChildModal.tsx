@@ -52,7 +52,6 @@ export function LayerAddChildModal({
               <button
                 key={item.type}
                 type="button"
-                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(item.type)}
                 className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-blue-50 active:bg-blue-100"
               >

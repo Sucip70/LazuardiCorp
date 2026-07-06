@@ -30,6 +30,7 @@ export function EditorDndProvider({ children }: EditorDndProviderProps) {
   const addComponent = useEditorStore((s) => s.addComponent)
   const moveNode = useEditorStore((s) => s.moveNode)
   const setDropTargetParentId = useUIStore((s) => s.setDropTargetParentId)
+  const setEditorError = useUIStore((s) => s.setEditorError)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -96,9 +97,12 @@ export function EditorDndProvider({ children }: EditorDndProviderProps) {
         : null
       const parentId = highlightedParentId ?? resolvedFromOver
 
-      if (parentId && nodes[parentId]) {
+      if (!parentId) {
+        setEditorError('Drop cancelled — no valid parent container was found.')
+      } else {
         const parent = nodes[parentId]
-        addComponent(type, parentId, parent.children.length)
+        const result = addComponent(type, parentId, parent?.children.length ?? 0)
+        if (!result.ok) setEditorError(result.error)
       }
     } else if (activeData?.kind === DND_TYPES.CANVAS_NODE) {
       const nodeId = active.id as string

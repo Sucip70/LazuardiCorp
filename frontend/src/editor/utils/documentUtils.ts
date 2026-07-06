@@ -1,4 +1,5 @@
-import type { PageDocument } from '../../types/editor'
+import type { ComponentNode, PageDocument } from '../../types/editor'
+import { canAcceptChildren } from './canvasUtils'
 
 function isPageDocument(value: unknown): value is PageDocument {
   if (!value || typeof value !== 'object') return false
@@ -7,20 +8,20 @@ function isPageDocument(value: unknown): value is PageDocument {
 }
 
 function pagePayload(page: Record<string, unknown>): PageDocument | null {
-  if (isPageDocument(page)) return page
+  if (isPageDocument(page)) return normalizeDocument(page)
 
   const document = page.document
-  if (isPageDocument(document)) return document
+  if (isPageDocument(document)) return normalizeDocument(document)
 
   if (document && typeof document === 'object') {
     const wrapped = document as Record<string, unknown>
     if (Array.isArray(wrapped.pages) && wrapped.pages.length > 0) {
       const inner = wrapped.pages[0]
       if (inner && typeof inner === 'object' && isPageDocument(inner)) {
-        return inner
+        return normalizeDocument(inner)
       }
     }
-    if (isPageDocument(wrapped)) return wrapped
+    if (isPageDocument(wrapped)) return normalizeDocument(wrapped)
   }
 
   return null
@@ -30,7 +31,7 @@ export function parseProjectDocument(data: unknown): PageDocument | null {
   if (!data || typeof data !== 'object') return null
   const doc = data as Record<string, unknown>
 
-  if (isPageDocument(doc)) return doc
+  if (isPageDocument(doc)) return normalizeDocument(doc)
 
   if (Array.isArray(doc.pages) && doc.pages.length > 0) {
     const page = doc.pages[0]
@@ -39,5 +40,42 @@ export function parseProjectDocument(data: unknown): PageDocument | null {
     }
   }
 
+  return null
+}
+
+export function normalizeDocument(doc: PageDocument): PageDocument {
+  const nodes: Record<string, ComponentNode> = {}
+
+  for (const [id, raw] of Object.entries(doc.nodes)) {
+    nodes[id] = {
+      ...raw,
+      id: raw.id ?? id,
+      children: Array.isArray(raw.children) ? [...raw.children] : [],
+      props: raw.props ?? {},
+      styles: raw.styles ?? {},
+      meta: raw.meta ?? {},
+    }
+  }
+
+  const rootIds = doc.rootIds.filter((id) => nodes[id] != null)
+
+  return { rootIds, nodes }
+}
+
+export type AddComponentResult =
+  | { ok: true; id: string }
+  | { ok: false; error: string }
+
+export function validateAddChild(
+  nodes: Record<string, ComponentNode>,
+  parentId: string,
+  type: string,
+): string | null {
+  const parent = nodes[parentId]
+  if (!parent) return `Parent component "${parentId}" was not found in the document.`
+  if (!canAcceptChildren(parent.type)) {
+    return `"${parent.meta?.label ?? parent.type}" cannot contain child components.`
+  }
+  if (!type.trim()) return 'Component type is required.'
   return null
 }

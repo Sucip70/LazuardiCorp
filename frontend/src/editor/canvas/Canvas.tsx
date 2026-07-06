@@ -11,6 +11,7 @@ import { SelectionOverlay } from './SelectionOverlay'
 
 function CanvasNode({ nodeId, editable }: { nodeId: string; editable: boolean }) {
   const node = useEditorStore((s) => s.nodes[nodeId])
+  const childCount = useEditorStore((s) => s.nodes[nodeId]?.children?.length ?? 0)
   const nodes = useEditorStore((s) => s.nodes)
   const breakpoint = useEditorStore((s) => s.breakpoint)
   const selectedId = useEditorStore((s) => s.selectedId)
@@ -50,6 +51,7 @@ function CanvasNode({ nodeId, editable }: { nodeId: string; editable: boolean })
           ? 'z-10 outline outline-2 outline-blue-500 ring-4 ring-blue-200/80'
           : ''
       }`}
+      data-child-count={childCount}
       {...(editable ? attributes : {})}
       {...(editable ? listeners : {})}
     >

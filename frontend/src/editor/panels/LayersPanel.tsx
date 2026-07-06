@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ComponentNode } from '../../types/editor'
 import { canAcceptChildren } from '../utils/canvasUtils'
 import { useEditorStore } from '../store/editorStore'
+import { useAddChildComponent } from '../hooks/useAddChildComponent'
 import { LayerAddChildModal } from './LayerAddChildModal'
 import { LayerDeleteConfirmModal } from './LayerDeleteConfirmModal'
 
@@ -202,7 +203,7 @@ function LayerRow({
 export function LayersPanel() {
   const rootIds = useEditorStore((s) => s.rootIds)
   const nodes = useEditorStore((s) => s.nodes)
-  const addComponent = useEditorStore((s) => s.addComponent)
+  const addChildComponent = useAddChildComponent()
   const deleteNode = useEditorStore((s) => s.deleteNode)
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -244,9 +245,7 @@ export function LayersPanel() {
         parentLabel={addChildParent?.meta?.label ?? addChildParent?.type ?? 'component'}
         onClose={() => setAddChildParentId(null)}
         onSelect={(type, parentId) => {
-          const parent = useEditorStore.getState().nodes[parentId]
-          if (!parent) return
-          addComponent(type, parentId, parent.children.length)
+          addChildComponent(type, parentId)
         }}
       />
 

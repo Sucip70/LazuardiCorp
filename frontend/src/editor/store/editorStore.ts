@@ -1,7 +1,13 @@
 import { create } from 'zustand'
+import { current } from 'immer'
 import { immer } from 'zustand/middleware/immer'
 import { createEmptyDocument, createNode } from '../../components/registry'
 import type { Breakpoint, ComponentNode, ComponentType, PageDocument } from '../../types/editor'
+import {
+  normalizeDocument,
+  validateAddChild,
+  type AddComponentResult,
+} from '../utils/documentUtils'
 
 const MAX_HISTORY = 50
 
@@ -25,7 +31,7 @@ type EditorActions = {
   zoomIn: () => void
   zoomOut: () => void
   resetZoom: () => void
-  addComponent: (type: ComponentType, parentId: string, index?: number) => string
+  addComponent: (type: ComponentType, parentId: string, index?: number) => AddComponentResult
   moveNode: (nodeId: string, newParentId: string, index: number) => void
   updateNodeProps: (nodeId: string, props: Record<string, unknown>) => void
   updateNodeStyles: (nodeId: string, styles: ComponentNode['styles']) => void
@@ -39,11 +45,13 @@ type EditorActions = {
   canRedo: () => boolean
 }
 
+function cloneDocument(doc: PageDocument): PageDocument {
+  return JSON.parse(JSON.stringify(doc)) as PageDocument
+}
+
 function snapshot(state: EditorState): Snapshot {
-  return {
-    rootIds: structuredClone(state.rootIds),
-    nodes: structuredClone(state.nodes),
-  }
+  const plain = current(state)
+  return cloneDocument({ rootIds: plain.rootIds, nodes: plain.nodes })
 }
 
 function pushHistory(state: EditorState) {
@@ -55,8 +63,9 @@ function pushHistory(state: EditorState) {
 }
 
 function restoreSnapshot(state: EditorState, snap: Snapshot) {
-  state.rootIds = structuredClone(snap.rootIds)
-  state.nodes = structuredClone(snap.nodes)
+  const cloned = cloneDocument(snap)
+  state.rootIds = cloned.rootIds
+  state.nodes = cloned.nodes
 }
 
 function removeNodeRecursive(nodes: Record<string, ComponentNode>, nodeId: string) {
@@ -93,20 +102,22 @@ function attachNode(
   nodeId: string,
   parentId: string | null,
   index: number,
-) {
+): boolean {
   const node = nodes[nodeId]
-  if (!node) return
+  if (!node) return false
 
   node.parentId = parentId
 
   if (parentId === null) {
     rootIds.splice(index, 0, nodeId)
-    return
+    return true
   }
 
   const parent = nodes[parentId]
-  if (!parent) return
+  if (!parent) return false
+  if (!Array.isArray(parent.children)) parent.children = []
   parent.children.splice(index, 0, nodeId)
+  return true
 }
 
 function newId(type: ComponentType) {
@@ -130,9 +141,10 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         const hasContent =
           doc.rootIds.length > 0 &&
           doc.rootIds.every((id) => doc.nodes[id] != null)
-        const normalized = hasContent ? doc : createEmptyDocument()
-        state.rootIds = structuredClone(normalized.rootIds)
-        state.nodes = structuredClone(normalized.nodes)
+        const normalized = hasContent ? normalizeDocument(doc) : createEmptyDocument()
+        const cloned = cloneDocument(normalized)
+        state.rootIds = cloned.rootIds
+        state.nodes = cloned.nodes
         state.selectedId = normalized.rootIds[0] ?? null
         state.past = []
         state.future = []
@@ -157,18 +169,33 @@ export const useEditorStore = create<EditorState & EditorActions>()(
     resetZoom: () => set({ zoom: 1 }),
 
     addComponent: (type, parentId, index) => {
-      const id = newId(type)
-      set((state) => {
-        pushHistory(state)
-        const node = createNode(type, id, parentId)
-        state.nodes[id] = node
+      const state = get()
+      const validationError = validateAddChild(state.nodes, parentId, type)
+      if (validationError) return { ok: false, error: validationError }
 
-        const parent = state.nodes[parentId]
-        const insertAt = index ?? parent?.children.length ?? state.rootIds.length
-        attachNode(state.nodes, state.rootIds, id, parentId, insertAt)
-        state.selectedId = id
+      const id = newId(type)
+      let attached = false
+
+      set((draft) => {
+        pushHistory(draft)
+        const node = createNode(type, id, parentId)
+        draft.nodes[id] = node
+
+        const parent = draft.nodes[parentId]
+        const insertAt = index ?? parent?.children.length ?? draft.rootIds.length
+        attached = attachNode(draft.nodes, draft.rootIds, id, parentId, insertAt)
+        if (attached) {
+          draft.selectedId = id
+        } else {
+          delete draft.nodes[id]
+        }
       })
-      return id
+
+      if (!attached) {
+        return { ok: false, error: `Failed to attach "${type}" to the selected parent.` }
+      }
+
+      return { ok: true, id }
     },
 
     moveNode: (nodeId, newParentId, index) =>
@@ -252,7 +279,7 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     getDocument: () => {
       const { rootIds, nodes } = get()
-      return { rootIds: structuredClone(rootIds), nodes: structuredClone(nodes) }
+      return cloneDocument({ rootIds, nodes })
     },
 
     canUndo: () => get().past.length > 0,
