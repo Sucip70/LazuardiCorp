@@ -35,6 +35,12 @@ type EditorActions = {
   moveNode: (nodeId: string, newParentId: string, index: number) => void
   updateNodeProps: (nodeId: string, props: Record<string, unknown>) => void
   updateNodeStyles: (nodeId: string, styles: ComponentNode['styles']) => void
+  updateNodeStyleCss: (
+    nodeId: string,
+    cssPatch: Record<string, string | undefined>,
+    breakpoint?: Breakpoint,
+  ) => void
+  updateNodeEvents: (nodeId: string, events: Record<string, unknown>) => void
   updateNodeMeta: (nodeId: string, meta: ComponentNode['meta']) => void
   resizeNode: (nodeId: string, width: number, height: number) => void
   deleteNode: (nodeId: string) => void
@@ -223,6 +229,50 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         if (!node) return
         pushHistory(state)
         node.styles = { ...node.styles, ...styles }
+      }),
+
+    updateNodeStyleCss: (nodeId, cssPatch, breakpoint = 'desktop') =>
+      set((state) => {
+        const node = state.nodes[nodeId]
+        if (!node) return
+        pushHistory(state)
+
+        const mergeCss = (current: Record<string, string> = {}) => {
+          const next = { ...current }
+          for (const [key, value] of Object.entries(cssPatch)) {
+            if (value === undefined || value === '') delete next[key]
+            else next[key] = value
+          }
+          return next
+        }
+
+        if (breakpoint === 'desktop') {
+          node.styles = {
+            ...node.styles,
+            css: mergeCss(node.styles?.css),
+          }
+          return
+        }
+
+        const bpStyles = node.styles?.breakpoints?.[breakpoint] ?? {}
+        node.styles = {
+          ...node.styles,
+          breakpoints: {
+            ...node.styles?.breakpoints,
+            [breakpoint]: {
+              ...bpStyles,
+              css: mergeCss(bpStyles.css),
+            },
+          },
+        }
+      }),
+
+    updateNodeEvents: (nodeId, events) =>
+      set((state) => {
+        const node = state.nodes[nodeId]
+        if (!node) return
+        pushHistory(state)
+        node.events = events
       }),
 
     updateNodeMeta: (nodeId, meta) =>

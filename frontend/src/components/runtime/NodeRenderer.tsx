@@ -1,7 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { Breakpoint, ComponentNode } from '../../types/editor'
 import { resolveRenderer } from '../../renderer/registry'
-import type { NormalizedNode } from '../../renderer/types'
+import { buildEventHandlers, defaultActionHandlers } from '../../renderer/events'
+import type { JsonEventDefinition, NormalizedNode } from '../../renderer/types'
 import { resolveClassName, resolveInlineStyle } from '../../editor/utils/canvasUtils'
 
 type NodeRendererProps = {
@@ -32,7 +33,17 @@ export function RuntimeNodeRenderer({
     ? `${isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:ring-1 hover:ring-blue-300'}`
     : ''
 
-  const interactiveProps: Record<string, (...args: unknown[]) => void> = {}
+  const nodeEvents = (node.events ?? {}) as Record<string, JsonEventDefinition>
+  const interactiveProps =
+    editable
+      ? {}
+      : buildEventHandlers(
+          node.id,
+          node.type,
+          nodeEvents,
+          node.props ?? {},
+          defaultActionHandlers,
+        )
 
   const childElements =
     entry.acceptsChildren !== false && (node.children?.length ?? 0) > 0

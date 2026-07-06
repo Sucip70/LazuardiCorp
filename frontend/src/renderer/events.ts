@@ -80,6 +80,22 @@ export const defaultActionHandlers: Record<string, ActionHandler> = {
       behavior: payload?.behavior === 'smooth' ? 'smooth' : 'auto',
     })
   },
+  submitForm: (payload) => {
+    const formId = payload?.formId
+    if (typeof formId !== 'string') return
+    const form = document.getElementById(formId) as HTMLFormElement | null
+    form?.requestSubmit()
+  },
+  toggleVisibility: (payload) => {
+    const elementId = payload?.elementId
+    if (typeof elementId !== 'string') return
+    const el = document.getElementById(elementId)
+    if (!el) return
+    el.classList.toggle('hidden')
+  },
+  custom: (payload) => {
+    console.info('[JsonRenderer] custom action', payload)
+  },
   handleClick: () => {
     console.info('[JsonRenderer] handleClick invoked')
   },
