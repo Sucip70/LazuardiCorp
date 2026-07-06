@@ -90,6 +90,10 @@ export function Canvas({ previewMode = false }: CanvasProps) {
 
   const width = BREAKPOINT_WIDTHS[breakpoint]
   const editable = !previewMode
+  const artboardHeight = 640
+  const labelHeight = 24
+  const scaledWidth = width * zoom
+  const scaledHeight = (artboardHeight + labelHeight) * zoom
 
   const { setNodeRef: setCanvasDropRef, isOver: isCanvasOver } = useDroppable({
     id: 'canvas-drop-zone',
@@ -101,44 +105,55 @@ export function Canvas({ previewMode = false }: CanvasProps) {
 
   return (
     <div
-      className="flex h-full items-start justify-center overflow-auto p-4 sm:p-8"
+      className="h-full w-full overflow-auto"
       onClick={() => editable && selectNode(null)}
     >
       <div
-        className="origin-top transition-transform duration-150"
-        style={{ transform: `scale(${zoom})` }}
+        className="mx-auto w-fit min-h-full p-4 sm:p-8"
+        style={{ minWidth: scaledWidth + 32 }}
       >
-        <div
-          ref={setCanvasDropRef}
-          className={`relative overflow-hidden rounded-xl border bg-white shadow-sm transition-colors duration-100 ${
-            previewMode
-              ? 'border-green-200 ring-2 ring-green-100'
-              : showCanvasHint
-                ? 'border-blue-400 ring-2 ring-blue-100'
-                : 'border-gray-200'
-          }`}
-          data-breakpoint={breakpoint}
-          style={{ width, minHeight: 640 }}
-        >
-          <CanvasGrid visible={showGrid && editable} />
-          {previewMode && (
-            <div className="absolute left-3 top-3 z-10 rounded-full bg-green-600 px-2 py-0.5 text-xs font-medium text-white">
-              Preview
+        <div style={{ width: scaledWidth, minHeight: scaledHeight }}>
+          <div
+            className="origin-top-left"
+            style={{
+              transform: `scale(${zoom})`,
+              width,
+              minHeight: artboardHeight + labelHeight,
+            }}
+          >
+            <div
+              ref={setCanvasDropRef}
+              className={`relative overflow-hidden rounded-xl border bg-white shadow-sm transition-colors duration-100 ${
+                previewMode
+                  ? 'border-green-200 ring-2 ring-green-100'
+                  : showCanvasHint
+                    ? 'border-blue-400 ring-2 ring-blue-100'
+                    : 'border-gray-200'
+              }`}
+              data-breakpoint={breakpoint}
+              style={{ width, minHeight: artboardHeight }}
+            >
+              <CanvasGrid visible={showGrid && editable} />
+              {previewMode && (
+                <div className="absolute left-3 top-3 z-10 rounded-full bg-green-600 px-2 py-0.5 text-xs font-medium text-white">
+                  Preview
+                </div>
+              )}
+              {rootIds.length === 0 ? (
+                <div className="flex min-h-[640px] items-center justify-center p-8 text-sm text-gray-400">
+                  Drop components here
+                </div>
+              ) : (
+                rootIds.map((rootId) => (
+                  <CanvasNode key={rootId} nodeId={rootId} editable={editable} />
+                ))
+              )}
             </div>
-          )}
-          {rootIds.length === 0 ? (
-            <div className="flex min-h-[640px] items-center justify-center p-8 text-sm text-gray-400">
-              Drop components here
-            </div>
-          ) : (
-            rootIds.map((rootId) => (
-              <CanvasNode key={rootId} nodeId={rootId} editable={editable} />
-            ))
-          )}
+            <p className="mt-2 text-center text-xs text-gray-400">
+              {width}px · {breakpoint}
+            </p>
+          </div>
         </div>
-        <p className="mt-2 text-center text-xs text-gray-400">
-          {width}px · {breakpoint}
-        </p>
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useCollaboration } from '../store/collaborationStore'
+import { useEditorStore } from '../store/editorStore'
 import { useUIStore } from '../store/uiStore'
 
 type TopBarProps = {
@@ -26,6 +27,10 @@ export function TopBar({
   const setPreviewMode = useUIStore((s) => s.setPreviewMode)
   const toggleLeftSidebar = useUIStore((s) => s.toggleLeftSidebar)
   const toggleRightSidebar = useUIStore((s) => s.toggleRightSidebar)
+  const zoom = useEditorStore((s) => s.zoom)
+  const zoomIn = useEditorStore((s) => s.zoomIn)
+  const zoomOut = useEditorStore((s) => s.zoomOut)
+  const resetZoom = useEditorStore((s) => s.resetZoom)
   const { collaborators, connectionStatus } = useCollaboration()
 
   const saveLabel =
@@ -81,6 +86,34 @@ export function TopBar({
       )}
 
       <div className="flex-1" />
+
+      {/* Zoom — visible in top bar for quick access */}
+      <div className="hidden items-center gap-0.5 rounded-lg border border-gray-200 p-0.5 sm:flex">
+        <button
+          type="button"
+          onClick={zoomOut}
+          className="rounded px-2 py-1 text-sm hover:bg-gray-100"
+          title="Zoom out (Ctrl+-)"
+        >
+          −
+        </button>
+        <button
+          type="button"
+          onClick={resetZoom}
+          className="min-w-12 rounded px-1 py-1 text-xs font-medium hover:bg-gray-100"
+          title="Reset zoom (Ctrl+0)"
+        >
+          {Math.round(zoom * 100)}%
+        </button>
+        <button
+          type="button"
+          onClick={zoomIn}
+          className="rounded px-2 py-1 text-sm hover:bg-gray-100"
+          title="Zoom in (Ctrl+=)"
+        >
+          +
+        </button>
+      </div>
 
       {/* Actions */}
       <div className="flex items-center gap-1 sm:gap-2">

@@ -37,7 +37,7 @@ export function EditorShell({
   const editorError = useUIStore((s) => s.editorError)
   const setEditorError = useUIStore((s) => s.setEditorError)
   const nodes = useEditorStore((s) => s.nodes)
-  const { isCompact, isWide } = useEditorResponsive()
+  const { isCompact } = useEditorResponsive()
 
   useKeyboardShortcuts({ onSave, onPreview, onExport })
 
@@ -71,9 +71,7 @@ export function EditorShell({
                 className={`z-30 w-[260px] shrink-0 ${
                   isCompact
                     ? 'absolute left-0 top-0 h-full shadow-xl'
-                    : isWide
-                      ? 'relative'
-                      : 'absolute left-0 top-0 h-full shadow-lg'
+                    : 'relative'
                 }`}
               />
             </>
@@ -99,9 +97,7 @@ export function EditorShell({
                 className={`z-30 w-full max-w-[320px] shrink-0 ${
                   isCompact
                     ? 'absolute right-0 top-0 h-full shadow-xl'
-                    : isWide
-                      ? 'relative'
-                      : 'absolute right-0 top-0 h-full shadow-lg'
+                    : 'relative'
                 }`}
               />
             </>
