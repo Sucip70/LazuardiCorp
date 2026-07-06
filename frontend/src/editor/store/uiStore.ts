@@ -14,6 +14,7 @@ type UIState = {
   previewMode: boolean
   saveStatus: SaveStatus
   saveMessage: string | null
+  dropTargetParentId: string | null
 }
 
 type UIActions = {
@@ -26,6 +27,7 @@ type UIActions = {
   toggleGrid: () => void
   setPreviewMode: (on: boolean) => void
   setSaveStatus: (status: SaveStatus, message?: string | null) => void
+  setDropTargetParentId: (nodeId: string | null) => void
 }
 
 export const useUIStore = create<UIState & UIActions>()(
@@ -39,6 +41,7 @@ export const useUIStore = create<UIState & UIActions>()(
       previewMode: false,
       saveStatus: 'idle',
       saveMessage: null,
+      dropTargetParentId: null,
 
       setLeftPanelTab: (leftPanelTab) => set({ leftPanelTab, leftSidebarOpen: true }),
       setRightPanelTab: (rightPanelTab) => set({ rightPanelTab, rightSidebarOpen: true }),
@@ -49,6 +52,7 @@ export const useUIStore = create<UIState & UIActions>()(
       toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
       setPreviewMode: (previewMode) => set({ previewMode }),
       setSaveStatus: (saveStatus, saveMessage = null) => set({ saveStatus, saveMessage }),
+      setDropTargetParentId: (dropTargetParentId) => set({ dropTargetParentId }),
     }),
     { name: 'lazuardi-editor-ui', partialize: (s) => ({ showGrid: s.showGrid }) },
   ),

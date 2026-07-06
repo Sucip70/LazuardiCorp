@@ -127,9 +127,13 @@ export const useEditorStore = create<EditorState & EditorActions>()(
 
     loadDocument: (doc) =>
       set((state) => {
-        state.rootIds = structuredClone(doc.rootIds)
-        state.nodes = structuredClone(doc.nodes)
-        state.selectedId = doc.rootIds[0] ?? null
+        const hasContent =
+          doc.rootIds.length > 0 &&
+          doc.rootIds.every((id) => doc.nodes[id] != null)
+        const normalized = hasContent ? doc : createEmptyDocument()
+        state.rootIds = structuredClone(normalized.rootIds)
+        state.nodes = structuredClone(normalized.nodes)
+        state.selectedId = normalized.rootIds[0] ?? null
         state.past = []
         state.future = []
       }),

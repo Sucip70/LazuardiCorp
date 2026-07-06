@@ -8,61 +8,12 @@ import { getProject, updateProject } from '../api/projects'
 import { fetchProjectPreview, openPreviewHtml } from '../api/preview'
 import { SaveAsTemplateModal } from '../components/templates/SaveAsTemplateModal'
 import { createEmptyDocument } from '../components/registry'
-
 import { EditorShell } from '../editor/layout/EditorShell'
-
+import { parseProjectDocument } from '../editor/utils/documentUtils'
 import { useEditorStore } from '../editor/store/editorStore'
-
 import { useUIStore } from '../editor/store/uiStore'
 
-import type { PageDocument } from '../types/editor'
-
-
-
-function parseProjectDocument(data: unknown): PageDocument | null {
-
-  if (!data || typeof data !== 'object') return null
-
-  const doc = data as Record<string, unknown>
-
-  if (Array.isArray(doc.pages) && doc.pages.length > 0) {
-
-    const page = doc.pages[0] as Record<string, unknown>
-
-    if (page.rootIds && page.nodes) {
-
-      return {
-
-        rootIds: page.rootIds as string[],
-
-        nodes: page.nodes as PageDocument['nodes'],
-
-      }
-
-    }
-
-  }
-
-  if (doc.rootIds && doc.nodes) {
-
-    return {
-
-      rootIds: doc.rootIds as string[],
-
-      nodes: doc.nodes as PageDocument['nodes'],
-
-    }
-
-  }
-
-  return null
-
-}
-
-
-
 export default function VisualEditorPage() {
-
   const { id } = useParams()
 
   const [projectName, setProjectName] = useState('Untitled Project')

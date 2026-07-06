@@ -36,3 +36,25 @@ export function findDropTarget(
   }
   return null
 }
+
+export function resolveDropParent(
+  nodes: Record<string, ComponentNode>,
+  rootIds: string[],
+  targetNodeId?: string | null,
+): string | null {
+  if (targetNodeId) {
+    const resolved = findDropTarget(nodes, targetNodeId)
+    if (resolved) return resolved
+  }
+
+  for (const rootId of rootIds) {
+    const node = nodes[rootId]
+    if (node && canAcceptChildren(node.type)) return rootId
+  }
+
+  for (const node of Object.values(nodes)) {
+    if (canAcceptChildren(node.type)) return node.id
+  }
+
+  return rootIds[0] ?? null
+}
