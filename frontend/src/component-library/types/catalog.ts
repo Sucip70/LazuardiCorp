@@ -58,4 +58,14 @@ export const EVENT_PRESETS = {
   blur: { name: 'onBlur', description: 'Fires when the element loses focus' },
   dismiss: { name: 'onDismiss', description: 'Fires when a dismissible UI is closed', defaultAction: 'toggleVisibility' },
   tabChange: { name: 'onTabChange', description: 'Fires when the active tab changes', defaultAction: 'custom' },
+  start: {
+    name: 'onStart',
+    description: 'Fires once when the page opens or preview starts (root only)',
+    defaultAction: 'setVar',
+  },
+  load: {
+    name: 'onLoad',
+    description: 'Fires after onStart when the page is ready / refreshed (root only)',
+    defaultAction: 'setVar',
+  },
 } as const

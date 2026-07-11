@@ -1,10 +1,12 @@
 import { getCatalogEntry } from '../../component-library/catalog'
-import type { EditorField } from '../../component-library/types/catalog'
+import { EVENT_PRESETS, type EditorField, type SupportedEvent } from '../../component-library/types/catalog'
 import { useEditorStore } from '../store/editorStore'
 import { AccordionSection } from './fields/AccordionSection'
 import { CatalogFieldRenderer } from './fields/CatalogFieldRenderer'
 import { EventsSection } from './fields/EventsSection'
 import { StyleSection } from './fields/StyleSection'
+
+const ROOT_LIFECYCLE_EVENTS: SupportedEvent[] = [EVENT_PRESETS.start, EVENT_PRESETS.load]
 
 const GROUP_ORDER = ['content', 'layout', 'style', 'behavior', 'accessibility'] as const
 const GROUP_LABELS: Record<(typeof GROUP_ORDER)[number], string> = {
@@ -142,9 +144,20 @@ export function PropsPanel() {
 
       <StyleSection nodeId={node.id} breakpoint={breakpoint} />
 
-      {catalog?.supportedEvents?.length ? (
-        <EventsSection nodeId={node.id} supportedEvents={catalog.supportedEvents} />
-      ) : null}
+      {(() => {
+        const baseEvents = catalog?.supportedEvents ?? []
+        const events: SupportedEvent[] =
+          node.parentId === null
+            ? [
+                ...baseEvents.filter(
+                  (e) => e.name !== 'onStart' && e.name !== 'onLoad',
+                ),
+                ...ROOT_LIFECYCLE_EVENTS,
+              ]
+            : baseEvents.filter((e) => e.name !== 'onStart' && e.name !== 'onLoad')
+        if (events.length === 0) return null
+        return <EventsSection nodeId={node.id} supportedEvents={events} />
+      })()}
 
       {node.parentId !== null && (
         <div className="border-t border-gray-100 p-4">
