@@ -1,9 +1,11 @@
+import { useEffect } from 'react'
 import { EditorDndProvider } from '../dnd/EditorDndProvider'
 import { useEditorResponsive } from '../hooks/useEditorResponsive'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { EditorErrorModal } from '../panels/EditorErrorModal'
 import { useUIStore } from '../store/uiStore'
 import { useEditorStore } from '../store/editorStore'
+import { setRuntimeNamespace } from '../../renderer/runtimeVars'
 import { Canvas } from '../canvas/Canvas'
 import { LeftSidebar } from './LeftSidebar'
 import { RightSidebar } from './RightSidebar'
@@ -40,6 +42,10 @@ export function EditorShell({
   const { isCompact } = useEditorResponsive()
 
   useKeyboardShortcuts({ onSave, onPreview, onExport })
+
+  useEffect(() => {
+    setRuntimeNamespace(projectId ?? 'default')
+  }, [projectId])
 
   const nodeCount = Object.keys(nodes).length
 

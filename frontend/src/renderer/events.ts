@@ -1,4 +1,14 @@
 import type { ActionContext, ActionHandler, JsonEventDefinition } from './types'
+import {
+  applyMathOp,
+  applyStringOp,
+  evaluateMath,
+  resolveTemplate,
+  resolveValue,
+  type MathOp,
+  type StringOp,
+} from './formulas'
+import { clearAllVars, clearVar, setVar, type VarScope } from './runtimeVars'
 
 const DOM_EVENT_MAP: Record<string, string> = {
   onClick: 'onClick',
@@ -63,33 +73,46 @@ export function buildEventHandlers(
   return handlers
 }
 
+function scopeFromPayload(payload?: Record<string, unknown>): VarScope {
+  return payload?.scope === 'memory' ? 'memory' : 'session'
+}
+
 export const defaultActionHandlers: Record<string, ActionHandler> = {
   navigate: (payload) => {
     const href = payload?.href
-    if (typeof href === 'string') window.location.assign(href)
+    if (typeof href === 'string') {
+      const resolved = resolveTemplate(href)
+      // In-editor preview: hash/path only — avoid full page unload when possible
+      if (resolved.startsWith('#')) {
+        const el = document.querySelector(resolved)
+        el?.scrollIntoView({ behavior: 'smooth' })
+        return
+      }
+      window.location.assign(resolved)
+    }
   },
   openUrl: (payload) => {
     const href = payload?.href
     const target = typeof payload?.target === 'string' ? payload.target : '_blank'
-    if (typeof href === 'string') window.open(href, target)
+    if (typeof href === 'string') window.open(resolveTemplate(href), target)
   },
   scrollTo: (payload) => {
     const elementId = payload?.elementId
     if (typeof elementId !== 'string') return
-    document.getElementById(elementId)?.scrollIntoView({
+    document.getElementById(resolveTemplate(elementId))?.scrollIntoView({
       behavior: payload?.behavior === 'smooth' ? 'smooth' : 'auto',
     })
   },
   submitForm: (payload) => {
     const formId = payload?.formId
     if (typeof formId !== 'string') return
-    const form = document.getElementById(formId) as HTMLFormElement | null
+    const form = document.getElementById(resolveTemplate(formId)) as HTMLFormElement | null
     form?.requestSubmit()
   },
   toggleVisibility: (payload) => {
     const elementId = payload?.elementId
     if (typeof elementId !== 'string') return
-    const el = document.getElementById(elementId)
+    const el = document.getElementById(resolveTemplate(elementId))
     if (!el) return
     el.classList.toggle('hidden')
   },
@@ -98,5 +121,85 @@ export const defaultActionHandlers: Record<string, ActionHandler> = {
   },
   handleClick: () => {
     console.info('[JsonRenderer] handleClick invoked')
+  },
+
+  /** Set a runtime variable (session by default, survives page switches in the same tab). */
+  setVar: (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+    const value = resolveValue(payload?.value ?? payload?.expr ?? '')
+    setVar(key, value, scopeFromPayload(payload))
+  },
+
+  clearVar: (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+    clearVar(key)
+  },
+
+  clearVars: () => {
+    clearAllVars()
+  },
+
+  /**
+   * Math: structured op (add/sub/mul/…) or free expression in `expr`.
+   * Result stored in `key`.
+   */
+  math: (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+
+    let result: number
+    if (typeof payload?.expr === 'string' && payload.expr.trim()) {
+      result = evaluateMath(payload.expr)
+    } else {
+      const op = String(payload?.op ?? 'add') as MathOp
+      const a = resolveValue(payload?.a)
+      const b = payload?.b !== undefined ? resolveValue(payload.b) : undefined
+      const decimals =
+        payload?.decimals !== undefined && payload.decimals !== ''
+          ? Number(payload.decimals)
+          : undefined
+      result = applyMathOp(op, a, b, decimals)
+    }
+
+    if (!Number.isFinite(result)) {
+      console.warn('[runtime] math produced non-finite result', payload)
+      return
+    }
+    setVar(key, result, scopeFromPayload(payload))
+  },
+
+  /**
+   * String ops: concat, upper, lower, trim, replace, slice, length, template.
+   * Result stored in `key`.
+   */
+  string: (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+    const op = String(payload?.op ?? 'concat') as StringOp
+    const a = resolveValue(payload?.a ?? payload?.value ?? '')
+    const b = payload?.b !== undefined ? resolveValue(payload.b) : undefined
+    const c = payload?.c !== undefined ? resolveValue(payload.c) : undefined
+    const result = applyStringOp(op, a, b, c)
+    setVar(key, result, scopeFromPayload(payload))
+  },
+
+  /**
+   * Generic formula: if expr looks like math, evaluate as number; otherwise template string.
+   * Prefer `math` / `string` for clarity; `formula` is a convenience shorthand.
+   */
+  formula: (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+    const expr = typeof payload?.expr === 'string' ? payload.expr : ''
+    if (!expr.trim()) return
+
+    const mathResult = evaluateMath(expr)
+    if (Number.isFinite(mathResult) && /[+\-*/%()]|\d/.test(expr)) {
+      setVar(key, mathResult, scopeFromPayload(payload))
+      return
+    }
+    setVar(key, resolveTemplate(expr), scopeFromPayload(payload))
   },
 }

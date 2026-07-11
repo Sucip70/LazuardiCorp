@@ -9,12 +9,45 @@ const EVENT_ACTIONS = [
   { label: 'Scroll to element', value: 'scrollTo' },
   { label: 'Submit form', value: 'submitForm' },
   { label: 'Toggle visibility', value: 'toggleVisibility' },
+  { label: 'Set variable', value: 'setVar' },
+  { label: 'Math', value: 'math' },
+  { label: 'String', value: 'string' },
+  { label: 'Formula', value: 'formula' },
+  { label: 'Clear variable', value: 'clearVar' },
+  { label: 'Clear all variables', value: 'clearVars' },
   { label: 'Custom', value: 'custom' },
   { label: 'Handle click (log)', value: 'handleClick' },
 ] as const
 
+const MATH_OPS = [
+  { label: 'Add (a + b)', value: 'add' },
+  { label: 'Subtract (a − b)', value: 'sub' },
+  { label: 'Multiply (a × b)', value: 'mul' },
+  { label: 'Divide (a ÷ b)', value: 'div' },
+  { label: 'Modulo (a % b)', value: 'mod' },
+  { label: 'Min', value: 'min' },
+  { label: 'Max', value: 'max' },
+  { label: 'Absolute (a)', value: 'abs' },
+  { label: 'Round (a)', value: 'round' },
+  { label: 'Floor (a)', value: 'floor' },
+  { label: 'Ceil (a)', value: 'ceil' },
+  { label: 'Percent (a × b%)', value: 'percent' },
+] as const
+
+const STRING_OPS = [
+  { label: 'Concat (a + b)', value: 'concat' },
+  { label: 'Uppercase', value: 'upper' },
+  { label: 'Lowercase', value: 'lower' },
+  { label: 'Trim', value: 'trim' },
+  { label: 'Replace (a, find b, with c)', value: 'replace' },
+  { label: 'Slice (a, start b, end c)', value: 'slice' },
+  { label: 'Length', value: 'length' },
+  { label: 'Template (resolve {{vars}})', value: 'template' },
+] as const
+
 const inputClass = 'rounded-md border border-gray-300 px-3 py-2 text-sm'
 const labelClass = 'text-sm font-medium text-gray-700'
+const hintClass = 'text-[11px] text-gray-400'
 
 type EventsSectionProps = {
   nodeId: string
@@ -28,6 +61,51 @@ function getEventDef(
   const raw = events?.[eventName]
   if (!raw || typeof raw !== 'object') return null
   return raw as JsonEventDefinition
+}
+
+function ScopeField({
+  payload,
+  onChange,
+}: {
+  payload: Record<string, unknown>
+  onChange: (payload: Record<string, unknown>) => void
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className={labelClass}>Scope</span>
+      <select
+        className={inputClass}
+        value={String(payload.scope ?? 'session')}
+        onChange={(e) => onChange({ ...payload, scope: e.target.value })}
+      >
+        <option value="session">Session (tab, survives page switches)</option>
+        <option value="memory">Memory (until refresh / leave preview)</option>
+      </select>
+    </label>
+  )
+}
+
+function KeyField({
+  payload,
+  onChange,
+  hint,
+}: {
+  payload: Record<string, unknown>
+  onChange: (payload: Record<string, unknown>) => void
+  hint?: string
+}) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className={labelClass}>Variable key</span>
+      <input
+        className={inputClass}
+        value={String(payload.key ?? '')}
+        placeholder="total"
+        onChange={(e) => onChange({ ...payload, key: e.target.value })}
+      />
+      {hint && <span className={hintClass}>{hint}</span>}
+    </label>
+  )
 }
 
 function PayloadFields({
@@ -52,6 +130,7 @@ function PayloadFields({
             className={inputClass}
             value={String(payload.href ?? '')}
             onChange={(e) => setField('href', e.target.value)}
+            placeholder="#section or /path — supports {{vars.x}}"
           />
         </label>
         {action === 'openUrl' && (
@@ -112,6 +191,165 @@ function PayloadFields({
     )
   }
 
+  if (action === 'setVar') {
+    return (
+      <>
+        <KeyField
+          payload={payload}
+          onChange={onChange}
+          hint="Use in text as {{vars.total}} or {{total}}"
+        />
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>Value</span>
+          <input
+            className={inputClass}
+            value={String(payload.value ?? '')}
+            onChange={(e) => setField('value', e.target.value)}
+            placeholder="hello / 42 / {{vars.other}} / @other"
+          />
+        </label>
+        <ScopeField payload={payload} onChange={onChange} />
+      </>
+    )
+  }
+
+  if (action === 'clearVar') {
+    return <KeyField payload={payload} onChange={onChange} />
+  }
+
+  if (action === 'clearVars') {
+    return <p className={hintClass}>Clears all preview/session variables for this project.</p>
+  }
+
+  if (action === 'math') {
+    return (
+      <>
+        <KeyField payload={payload} onChange={onChange} hint="Result is stored in this variable" />
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>Expression (optional)</span>
+          <input
+            className={`${inputClass} font-mono text-xs`}
+            value={String(payload.expr ?? '')}
+            onChange={(e) => setField('expr', e.target.value)}
+            placeholder="{{price}} * {{qty}} + 10"
+          />
+          <span className={hintClass}>If set, overrides op / a / b below.</span>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>Operation</span>
+          <select
+            className={inputClass}
+            value={String(payload.op ?? 'add')}
+            onChange={(e) => setField('op', e.target.value)}
+          >
+            {MATH_OPS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>A</span>
+          <input
+            className={inputClass}
+            value={String(payload.a ?? '')}
+            onChange={(e) => setField('a', e.target.value)}
+            placeholder="10 or {{vars.price}} or @price"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>B</span>
+          <input
+            className={inputClass}
+            value={String(payload.b ?? '')}
+            onChange={(e) => setField('b', e.target.value)}
+            placeholder="2"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>Decimals (optional)</span>
+          <input
+            className={inputClass}
+            type="number"
+            min={0}
+            value={String(payload.decimals ?? '')}
+            onChange={(e) => setField('decimals', e.target.value)}
+          />
+        </label>
+        <ScopeField payload={payload} onChange={onChange} />
+      </>
+    )
+  }
+
+  if (action === 'string') {
+    return (
+      <>
+        <KeyField payload={payload} onChange={onChange} />
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>Operation</span>
+          <select
+            className={inputClass}
+            value={String(payload.op ?? 'concat')}
+            onChange={(e) => setField('op', e.target.value)}
+          >
+            {STRING_OPS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>A</span>
+          <input
+            className={inputClass}
+            value={String(payload.a ?? '')}
+            onChange={(e) => setField('a', e.target.value)}
+            placeholder="Hello"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>B</span>
+          <input
+            className={inputClass}
+            value={String(payload.b ?? '')}
+            onChange={(e) => setField('b', e.target.value)}
+            placeholder=" World"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>C (replace with / slice end)</span>
+          <input
+            className={inputClass}
+            value={String(payload.c ?? '')}
+            onChange={(e) => setField('c', e.target.value)}
+          />
+        </label>
+        <ScopeField payload={payload} onChange={onChange} />
+      </>
+    )
+  }
+
+  if (action === 'formula') {
+    return (
+      <>
+        <KeyField payload={payload} onChange={onChange} />
+        <label className="flex flex-col gap-1">
+          <span className={labelClass}>Expression</span>
+          <input
+            className={`${inputClass} font-mono text-xs`}
+            value={String(payload.expr ?? '')}
+            onChange={(e) => setField('expr', e.target.value)}
+            placeholder="{{price}} * 1.1  or  Hello {{name}}"
+          />
+          <span className={hintClass}>Math if expression has operators; otherwise string template.</span>
+        </label>
+        <ScopeField payload={payload} onChange={onChange} />
+      </>
+    )
+  }
+
   if (action === 'custom') {
     return (
       <label className="flex flex-col gap-1">
@@ -154,6 +392,9 @@ export function EventsSection({ nodeId, supportedEvents }: EventsSectionProps) {
 
   return (
     <AccordionSection title="Events" defaultOpen={false}>
+      <p className="text-[11px] text-gray-500">
+        In preview, bind text with {'{{vars.name}}'}. Variables use session storage by default.
+      </p>
       {supportedEvents.map((evt) => {
         const def = getEventDef(node.events, evt.name)
         const enabled = def !== null

@@ -1,7 +1,12 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import type { Breakpoint, ComponentNode } from '../../types/editor'
 import { resolveRenderer } from '../../renderer/registry'
 import { buildEventHandlers, defaultActionHandlers } from '../../renderer/events'
+import { bindProps } from '../../renderer/formulas'
+import {
+  getRuntimeVarsSnapshot,
+  subscribeRuntimeVars,
+} from '../../renderer/runtimeVars'
 import type { JsonEventDefinition, NormalizedNode } from '../../renderer/types'
 import { resolveClassName, resolveInlineStyle } from '../../editor/utils/canvasUtils'
 
@@ -24,6 +29,9 @@ export function RuntimeNodeRenderer({
   editable = false,
   renderChild,
 }: NodeRendererProps) {
+  // Re-render when runtime vars change (preview bindings like {{vars.total}})
+  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
+
   const entry = resolveRenderer(node.type)
   const className = resolveClassName(node, breakpoint)
   const style = resolveInlineStyle(node, breakpoint)
@@ -33,17 +41,17 @@ export function RuntimeNodeRenderer({
     ? `${isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:ring-1 hover:ring-blue-300'}`
     : ''
 
+  const boundProps = editable ? (node.props ?? {}) : bindProps(node.props ?? {})
   const nodeEvents = (node.events ?? {}) as Record<string, JsonEventDefinition>
-  const interactiveProps =
-    editable
-      ? {}
-      : buildEventHandlers(
-          node.id,
-          node.type,
-          nodeEvents,
-          node.props ?? {},
-          defaultActionHandlers,
-        )
+  const interactiveProps = editable
+    ? {}
+    : buildEventHandlers(
+        node.id,
+        node.type,
+        nodeEvents,
+        boundProps,
+        defaultActionHandlers,
+      )
 
   const childElements =
     entry.acceptsChildren !== false && (node.children?.length ?? 0) > 0
@@ -66,7 +74,10 @@ export function RuntimeNodeRenderer({
       : null
 
   const Component = entry.component
-  const normalizedNode = node as unknown as NormalizedNode
+  const normalizedNode = {
+    ...(node as unknown as NormalizedNode),
+    props: boundProps,
+  }
 
   return (
     <div

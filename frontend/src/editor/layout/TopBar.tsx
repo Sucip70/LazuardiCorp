@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { clearAllVars } from '../../renderer/runtimeVars'
 import { useCollaboration } from '../store/collaborationStore'
 import { useEditorStore } from '../store/editorStore'
 import { useUIStore } from '../store/uiStore'
@@ -126,6 +127,16 @@ export function TopBar({
         >
           {saveLabel}
         </button>
+        {previewMode && (
+          <button
+            type="button"
+            onClick={() => clearAllVars()}
+            className="hidden rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-sm text-amber-800 hover:bg-amber-100 sm:inline-block"
+            title="Clear preview variables (session + memory)"
+          >
+            Clear vars
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {
