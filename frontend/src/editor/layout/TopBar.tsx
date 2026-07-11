@@ -132,7 +132,7 @@ export function TopBar({
             type="button"
             onClick={() => clearAllVars()}
             className="hidden rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-sm text-amber-800 hover:bg-amber-100 sm:inline-block"
-            title="Clear preview variables (session + memory)"
+            title="Clear all preview variables (global + temporary)"
           >
             Clear vars
           </button>

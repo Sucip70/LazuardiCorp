@@ -5,7 +5,8 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { EditorErrorModal } from '../panels/EditorErrorModal'
 import { useUIStore } from '../store/uiStore'
 import { useEditorStore } from '../store/editorStore'
-import { setRuntimeNamespace } from '../../renderer/runtimeVars'
+import { useVariablesStore } from '../store/variablesStore'
+import { setRuntimeContext } from '../../renderer/runtimeVars'
 import { Canvas } from '../canvas/Canvas'
 import { LeftSidebar } from './LeftSidebar'
 import { RightSidebar } from './RightSidebar'
@@ -39,13 +40,17 @@ export function EditorShell({
   const editorError = useUIStore((s) => s.editorError)
   const setEditorError = useUIStore((s) => s.setEditorError)
   const nodes = useEditorStore((s) => s.nodes)
+  const activePageId = useVariablesStore((s) => s.activePageId)
   const { isCompact } = useEditorResponsive()
 
   useKeyboardShortcuts({ onSave, onPreview, onExport })
 
   useEffect(() => {
-    setRuntimeNamespace(projectId ?? 'default')
-  }, [projectId])
+    setRuntimeContext({
+      projectId: projectId ?? 'default',
+      pageId: activePageId,
+    })
+  }, [projectId, activePageId])
 
   const nodeCount = Object.keys(nodes).length
 

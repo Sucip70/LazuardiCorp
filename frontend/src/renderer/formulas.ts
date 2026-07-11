@@ -1,4 +1,4 @@
-import { getAllVars, getVar } from './runtimeVars'
+import { getAllVars, getVar, resolveVarKey } from './runtimeVars'
 
 export type FormulaValue = string | number | boolean | null
 
@@ -15,11 +15,13 @@ function toString(value: FormulaValue | undefined): string {
   return String(value)
 }
 
-/** Resolve {{varName}} or {{vars.varName}} against the runtime store. */
+/** Resolve {{varName}}, {{vars.x}}, {{global.x}}, {{temp.x}} against the runtime store. */
 export function resolveTemplate(template: string, vars?: Record<string, FormulaValue>): string {
   const source = vars ?? (getAllVars() as Record<string, FormulaValue>)
-  return template.replace(/\{\{\s*(?:vars\.)?([a-zA-Z_][\w.]*)\s*\}\}/g, (_, key: string) => {
-    const value = source[key] ?? getVar(key)
+  return template.replace(/\{\{\s*([a-zA-Z_][\w.]*)\s*\}\}/g, (_, key: string) => {
+    const fromSource = source[key] ?? source[key.replace(/^vars\./, '')]
+    if (fromSource !== undefined && fromSource !== null) return String(fromSource)
+    const value = resolveVarKey(key)
     return value === null || value === undefined ? '' : String(value)
   })
 }

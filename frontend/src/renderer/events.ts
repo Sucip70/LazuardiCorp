@@ -8,7 +8,7 @@ import {
   type MathOp,
   type StringOp,
 } from './formulas'
-import { clearAllVars, clearVar, setVar, type VarScope } from './runtimeVars'
+import { clearAllVars, clearTemporaryVars, clearVar, setVar, type VarScope } from './runtimeVars'
 
 const DOM_EVENT_MAP: Record<string, string> = {
   onClick: 'onClick',
@@ -74,7 +74,10 @@ export function buildEventHandlers(
 }
 
 function scopeFromPayload(payload?: Record<string, unknown>): VarScope {
-  return payload?.scope === 'memory' ? 'memory' : 'session'
+  const scope = payload?.scope
+  if (scope === 'temporary' || scope === 'memory') return 'temporary'
+  if (scope === 'global' || scope === 'session') return 'global'
+  return 'global'
 }
 
 export const defaultActionHandlers: Record<string, ActionHandler> = {
@@ -134,11 +137,14 @@ export const defaultActionHandlers: Record<string, ActionHandler> = {
   clearVar: (payload) => {
     const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
     if (!key) return
-    clearVar(key)
+    const kind = scopeFromPayload(payload)
+    clearVar(key, kind === 'temporary' ? 'temporary' : 'global')
   },
 
-  clearVars: () => {
-    clearAllVars()
+  clearVars: (payload) => {
+    const kind = scopeFromPayload(payload)
+    if (kind === 'temporary') clearTemporaryVars()
+    else clearAllVars()
   },
 
   /**

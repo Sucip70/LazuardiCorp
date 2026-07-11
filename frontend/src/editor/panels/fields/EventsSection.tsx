@@ -70,16 +70,20 @@ function ScopeField({
   payload: Record<string, unknown>
   onChange: (payload: Record<string, unknown>) => void
 }) {
+  const raw = String(payload.scope ?? 'global')
+  const value =
+    raw === 'session' ? 'global' : raw === 'memory' ? 'temporary' : raw
+
   return (
     <label className="flex flex-col gap-1">
       <span className={labelClass}>Scope</span>
       <select
         className={inputClass}
-        value={String(payload.scope ?? 'session')}
+        value={value === 'temporary' ? 'temporary' : 'global'}
         onChange={(e) => onChange({ ...payload, scope: e.target.value })}
       >
-        <option value="session">Session (tab, survives page switches)</option>
-        <option value="memory">Memory (until refresh / leave preview)</option>
+        <option value="global">Global (all pages)</option>
+        <option value="temporary">Temporary (this page only)</option>
       </select>
     </label>
   )
@@ -214,11 +218,21 @@ function PayloadFields({
   }
 
   if (action === 'clearVar') {
-    return <KeyField payload={payload} onChange={onChange} />
+    return (
+      <>
+        <KeyField payload={payload} onChange={onChange} />
+        <ScopeField payload={payload} onChange={onChange} />
+      </>
+    )
   }
 
   if (action === 'clearVars') {
-    return <p className={hintClass}>Clears all preview/session variables for this project.</p>
+    return (
+      <>
+        <p className={hintClass}>Choose which variables to clear.</p>
+        <ScopeField payload={payload} onChange={onChange} />
+      </>
+    )
   }
 
   if (action === 'math') {
@@ -393,7 +407,8 @@ export function EventsSection({ nodeId, supportedEvents }: EventsSectionProps) {
   return (
     <AccordionSection title="Events" defaultOpen={false}>
       <p className="text-[11px] text-gray-500">
-        In preview, bind text with {'{{vars.name}}'}. Variables use session storage by default.
+        In preview, bind text with {'{{vars.name}}'}, {'{{global.name}}'}, or {'{{temp.name}}'}.
+        Manage definitions in the Variables left panel.
       </p>
       {supportedEvents.map((evt) => {
         const def = getEventDef(node.events, evt.name)

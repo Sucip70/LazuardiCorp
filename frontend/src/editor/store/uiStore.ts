@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type LeftPanelTab = 'components' | 'pages' | 'layers'
+export type LeftPanelTab = 'components' | 'pages' | 'layers' | 'variables'
 export type RightPanelTab = 'props' | 'json'
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
