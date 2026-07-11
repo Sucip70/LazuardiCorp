@@ -94,47 +94,29 @@ export default function VisualEditorPage() {
 
 
   const persist = useCallback(async () => {
-
     if (!id) return
+    if (useUIStore.getState().saveStatus === 'saving') return
 
     setSaveStatus('saving')
-
     try {
-
       const doc = getDocument()
-
       await updateProject(id, {
-
         schemaVersion: '1.0.0',
-
         pages: [{ id: 'page_home', name: 'Home', path: '/', rootIds: doc.rootIds, nodes: doc.nodes }],
-
       })
-
       setSaveStatus('saved')
-
       window.setTimeout(() => setSaveStatus('idle'), 2000)
-
     } catch (err) {
-
       const message = err instanceof ApiError ? err.message : 'Save failed'
-
       setSaveStatus('error', message)
-
     }
-
   }, [id, getDocument, setSaveStatus])
 
-
-
   useEffect(() => {
-
     if (!id) return
-
-    const interval = window.setInterval(() => void persist(), 5000)
-
+    const AUTO_SAVE_MS = 60_000
+    const interval = window.setInterval(() => void persist(), AUTO_SAVE_MS)
     return () => window.clearInterval(interval)
-
   }, [id, persist])
 
 
