@@ -5,6 +5,13 @@ export type Project = {
   data: unknown
 }
 
+export type ProjectV1 = {
+  id: string
+  name: string
+  slug: string
+  description?: string
+}
+
 export function listProjects(): Promise<Project[]> {
   return apiFetch<Project[]>('/api/projects')
 }
@@ -17,6 +24,18 @@ export function createProject(data: unknown): Promise<Project> {
   return apiFetch<Project>('/api/projects', {
     method: 'POST',
     body: JSON.stringify({ data }),
+  })
+}
+
+/** Create an empty project (Home page, no template). */
+export function createBlankProject(payload: {
+  name: string
+  slug: string
+  description?: string
+}): Promise<ProjectV1> {
+  return apiFetch<ProjectV1>('/api/v1/projects', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   })
 }
 

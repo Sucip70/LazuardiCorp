@@ -82,8 +82,8 @@ export function DashboardPage() {
             to="/projects/new"
             className="rounded-xl border border-dashed border-blue-300 bg-blue-50/50 p-5 transition hover:border-blue-400 hover:bg-blue-50"
           >
-            <p className="font-medium text-blue-700">+ New from template</p>
-            <p className="mt-1 text-sm text-blue-600/80">Pick a starter and customize</p>
+            <p className="font-medium text-blue-700">+ New project</p>
+            <p className="mt-1 text-sm text-blue-600/80">Start blank or pick a template</p>
           </Link>
           <Link
             to="/templates"
