@@ -255,14 +255,19 @@ func (s *ProjectService) LegacyGet(userID uuid.UUID, id string) (dto.LegacyProje
 	if err != nil {
 		return dto.LegacyProjectResponse{}, ErrInvalidInput
 	}
-	if _, err := s.projects.FindByID(projectID, userID); err != nil {
+	project, err := s.projects.FindByID(projectID, userID)
+	if err != nil {
 		return dto.LegacyProjectResponse{}, err
 	}
 	pages, err := s.pages.ListByProject(projectID)
 	if err != nil {
 		return dto.LegacyProjectResponse{}, err
 	}
-	payload := map[string]any{"pages": pages}
+	payload := map[string]any{
+		"name":  project.Name,
+		"slug":  project.Slug,
+		"pages": pages,
+	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return dto.LegacyProjectResponse{}, err

@@ -26,14 +26,47 @@ func (r *ProjectRepository) Update(project *model.Project) error {
 }
 
 func (r *ProjectRepository) Delete(id, userID uuid.UUID) error {
-	result := r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&model.Project{})
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return ErrNotFound
-	}
-	return nil
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var project model.Project
+		if err := tx.Where("id = ? AND user_id = ?", id, userID).First(&project).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotFound
+			}
+			return err
+		}
+
+		// Clear FK from deploy config → last deployment before removing deployments.
+		if err := tx.Model(&model.ProjectDeployConfig{}).
+			Where("project_id = ?", id).
+			Update("last_deployment_id", nil).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where("project_id = ?", id).Delete(&model.DeploymentDomain{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("project_id = ?", id).Delete(&model.Deployment{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("project_id = ?", id).Delete(&model.ProjectDeployConfig{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("project_id = ?", id).Delete(&model.Asset{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("project_id = ?", id).Delete(&model.Page{}).Error; err != nil {
+			return err
+		}
+
+		result := tx.Where("id = ? AND user_id = ?", id, userID).Delete(&model.Project{})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
 }
 
 func (r *ProjectRepository) FindByID(id, userID uuid.UUID) (*model.Project, error) {

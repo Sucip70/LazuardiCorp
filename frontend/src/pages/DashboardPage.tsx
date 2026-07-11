@@ -39,10 +39,13 @@ export function DashboardPage() {
 
   async function handleDelete(id: string) {
     if (!window.confirm('Delete this project?')) return
+    setError(null)
+    const previous = projects
+    setProjects((list) => list.filter((p) => p.id !== id))
     try {
       await deleteProject(id)
-      await loadProjects()
     } catch (err) {
+      setProjects(previous)
       setError(err instanceof ApiError ? err.message : 'Failed to delete')
     }
   }
