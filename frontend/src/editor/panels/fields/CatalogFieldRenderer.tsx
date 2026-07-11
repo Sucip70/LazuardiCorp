@@ -117,12 +117,12 @@ export function CatalogFieldRenderer({ node, field, breakpoint }: CatalogFieldRe
         <div className="flex items-center gap-2">
           <input
             type="color"
-            className="h-9 w-12 cursor-pointer rounded border border-gray-300"
+            className="h-9 w-9 shrink-0 cursor-pointer appearance-none rounded-md border border-gray-300 bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-[5px] [&::-webkit-color-swatch]:border-none [&::-moz-color-swatch]:rounded-[5px] [&::-moz-color-swatch]:border-none"
             value={String(rawValue ?? '#000000').startsWith('#') ? String(rawValue) : '#000000'}
             onChange={(e) => setProp(e.target.value)}
           />
           <input
-            className={`${inputClass} flex-1`}
+            className={`${inputClass} min-w-0 flex-1`}
             value={String(rawValue ?? '')}
             onChange={(e) => setProp(e.target.value)}
           />
