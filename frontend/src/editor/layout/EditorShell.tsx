@@ -21,6 +21,10 @@ export type EditorShellProps = {
   onPreview?: () => void
   onExport?: () => void
   onSaveAsTemplate?: () => void
+  onSelectPage?: (pageId: string) => void | Promise<void>
+  onAddPage?: (name: string) => void | Promise<void>
+  onDeletePage?: (pageId: string) => void | Promise<void>
+  pagesBusy?: boolean
 }
 
 export function EditorShell({
@@ -31,6 +35,10 @@ export function EditorShell({
   onPreview,
   onExport,
   onSaveAsTemplate,
+  onSelectPage,
+  onAddPage,
+  onDeletePage,
+  pagesBusy = false,
 }: EditorShellProps) {
   const leftOpen = useUIStore((s) => s.leftSidebarOpen)
   const rightOpen = useUIStore((s) => s.rightSidebarOpen)
@@ -94,6 +102,10 @@ export function EditorShell({
                     ? 'absolute left-0 top-0 h-full shadow-xl'
                     : 'relative'
                 }`}
+                onSelectPage={onSelectPage}
+                onAddPage={onAddPage}
+                onDeletePage={onDeletePage}
+                pagesBusy={pagesBusy}
               />
             </>
           )}

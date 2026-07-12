@@ -1,6 +1,7 @@
 import type { LeftPanelTab } from '../store/uiStore'
 import { useUIStore } from '../store/uiStore'
 import { useVariablesStore } from '../store/variablesStore'
+import { usePagesStore } from '../store/pagesStore'
 import { ComponentPaletteSidebar } from '../panels/ComponentPaletteSidebar'
 import { LayersPanel } from '../panels/LayersPanel'
 import { PagesPanel } from '../panels/PagesPanel'
@@ -16,17 +17,29 @@ const TABS: { id: LeftPanelTab; label: string; icon: string }[] = [
 type LeftSidebarProps = {
   className?: string
   onSelectPage?: (pageId: string) => void
+  onAddPage?: (name: string) => void | Promise<void>
+  onDeletePage?: (pageId: string) => void | Promise<void>
+  pagesBusy?: boolean
 }
 
-export function LeftSidebar({ className = '', onSelectPage }: LeftSidebarProps) {
+export function LeftSidebar({
+  className = '',
+  onSelectPage,
+  onAddPage,
+  onDeletePage,
+  pagesBusy = false,
+}: LeftSidebarProps) {
   const tab = useUIStore((s) => s.leftPanelTab)
   const setTab = useUIStore((s) => s.setLeftPanelTab)
   const setActivePageId = useVariablesStore((s) => s.setActivePageId)
   const activePageId = useVariablesStore((s) => s.activePageId)
+  const pages = usePagesStore((s) => s.pages)
 
   function handleSelectPage(pageId: string) {
-    setActivePageId(pageId)
+    if (pageId === activePageId) return
     onSelectPage?.(pageId)
+    // activePageId is updated by the parent after a successful switch
+    if (!onSelectPage) setActivePageId(pageId)
   }
 
   return (
@@ -55,7 +68,14 @@ export function LeftSidebar({ className = '', onSelectPage }: LeftSidebarProps) 
       <div className="min-h-0 flex-1 overflow-hidden">
         {tab === 'components' && <ComponentPaletteSidebar />}
         {tab === 'pages' && (
-          <PagesPanel activePageId={activePageId} onSelectPage={handleSelectPage} />
+          <PagesPanel
+            pages={pages}
+            activePageId={activePageId}
+            onSelectPage={handleSelectPage}
+            onAddPage={onAddPage}
+            onDeletePage={onDeletePage}
+            busy={pagesBusy}
+          />
         )}
         {tab === 'layers' && <LayersPanel />}
         {tab === 'variables' && <VariablesPanel />}

@@ -39,6 +39,31 @@ export function createBlankProject(payload: {
   })
 }
 
+export type ProjectDetailV1 = ProjectV1 & {
+  settings?: unknown
+  description?: string
+  is_template?: boolean
+}
+
+export function getProjectV1(id: string): Promise<ProjectDetailV1> {
+  return apiFetch<ProjectDetailV1>(`/api/v1/projects/${id}`)
+}
+
+export function updateProjectV1(
+  id: string,
+  payload: {
+    name?: string
+    slug?: string
+    description?: string
+    settings?: unknown
+  },
+): Promise<ProjectDetailV1> {
+  return apiFetch<ProjectDetailV1>(`/api/v1/projects/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
 export function updateProject(id: string, data: unknown): Promise<Project> {
   return apiFetch<Project>(`/api/projects/${id}`, {
     method: 'PUT',

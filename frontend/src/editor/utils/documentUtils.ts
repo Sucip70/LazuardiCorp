@@ -43,6 +43,22 @@ export function parseProjectDocument(data: unknown): PageDocument | null {
   return null
 }
 
+/** Parse a page `document` field from the pages API (or a full page row). */
+export function parsePageDocument(raw: unknown): PageDocument | null {
+  if (!raw) return null
+  if (typeof raw === 'string') {
+    try {
+      return parsePageDocument(JSON.parse(raw) as unknown)
+    } catch {
+      return null
+    }
+  }
+  if (typeof raw !== 'object') return null
+  const obj = raw as Record<string, unknown>
+  if (isPageDocument(obj)) return normalizeDocument(obj as PageDocument)
+  return pagePayload(obj)
+}
+
 export function normalizeDocument(doc: PageDocument): PageDocument {
   const nodes: Record<string, ComponentNode> = {}
 
