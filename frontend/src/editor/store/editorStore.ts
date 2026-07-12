@@ -32,7 +32,9 @@ type EditorActions = {
   zoomOut: () => void
   resetZoom: () => void
   addComponent: (type: ComponentType, parentId: string, index?: number) => AddComponentResult
-  moveNode: (nodeId: string, newParentId: string, index: number) => void
+  moveNode: (nodeId: string, newParentId: string | null, index: number) => void
+  /** Reorder among siblings (same parent / roots). */
+  reorderNode: (nodeId: string, direction: 'up' | 'down') => void
   updateNodeProps: (nodeId: string, props: Record<string, unknown>) => void
   updateNodeStyles: (nodeId: string, styles: ComponentNode['styles']) => void
   updateNodeStyleCss: (
@@ -217,6 +219,26 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         pushHistory(state)
         detachNode(state.nodes, state.rootIds, nodeId)
         attachNode(state.nodes, state.rootIds, nodeId, newParentId, index)
+      }),
+
+    reorderNode: (nodeId, direction) =>
+      set((state) => {
+        const node = state.nodes[nodeId]
+        if (!node || node.meta?.locked) return
+
+        const parentId = node.parentId
+        const siblings =
+          parentId === null ? state.rootIds : state.nodes[parentId]?.children
+        if (!siblings) return
+
+        const from = siblings.indexOf(nodeId)
+        if (from < 0) return
+        const to = direction === 'up' ? from - 1 : from + 1
+        if (to < 0 || to >= siblings.length) return
+
+        pushHistory(state)
+        detachNode(state.nodes, state.rootIds, nodeId)
+        attachNode(state.nodes, state.rootIds, nodeId, parentId, to)
       }),
 
     updateNodeProps: (nodeId, props) =>
