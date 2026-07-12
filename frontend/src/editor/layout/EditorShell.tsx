@@ -41,6 +41,8 @@ export function EditorShell({
   const setEditorError = useUIStore((s) => s.setEditorError)
   const nodes = useEditorStore((s) => s.nodes)
   const activePageId = useVariablesStore((s) => s.activePageId)
+  const setRightPanelTab = useUIStore((s) => s.setRightPanelTab)
+  const setRightSidebarOpen = useUIStore((s) => s.setRightSidebarOpen)
   const { isCompact } = useEditorResponsive()
 
   useKeyboardShortcuts({ onSave, onPreview, onExport })
@@ -51,6 +53,14 @@ export function EditorShell({
       pageId: activePageId,
     })
   }, [projectId, activePageId])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('panel') === 'json') {
+      setRightPanelTab('json')
+      setRightSidebarOpen(true)
+    }
+  }, [setRightPanelTab, setRightSidebarOpen])
 
   const nodeCount = Object.keys(nodes).length
 

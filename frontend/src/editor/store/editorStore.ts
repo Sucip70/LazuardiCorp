@@ -41,6 +41,10 @@ type EditorActions = {
     breakpoint?: Breakpoint,
   ) => void
   updateNodeEvents: (nodeId: string, events: Record<string, unknown>) => void
+  updateNodeAttributes: (
+    nodeId: string,
+    attributes: Record<string, string | number | boolean>,
+  ) => void
   updateNodeMeta: (nodeId: string, meta: ComponentNode['meta']) => void
   resizeNode: (nodeId: string, width: number, height: number) => void
   deleteNode: (nodeId: string) => void
@@ -273,6 +277,14 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         if (!node) return
         pushHistory(state)
         node.events = events
+      }),
+
+    updateNodeAttributes: (nodeId, attributes) =>
+      set((state) => {
+        const node = state.nodes[nodeId]
+        if (!node) return
+        pushHistory(state)
+        node.attributes = attributes
       }),
 
     updateNodeMeta: (nodeId, meta) =>

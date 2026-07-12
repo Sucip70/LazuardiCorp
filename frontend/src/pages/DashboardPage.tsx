@@ -128,7 +128,7 @@ export function DashboardPage() {
                     Open editor
                   </Link>
                   <Link
-                    to={`/projects/${project.id}`}
+                    to={`/projects/${project.id}/visual?panel=json`}
                     className="rounded-md border border-gray-200 px-3 py-1.5 text-sm hover:bg-gray-50"
                   >
                     JSON
