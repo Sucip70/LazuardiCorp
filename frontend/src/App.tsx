@@ -8,6 +8,7 @@ import ProjectEditor from './pages/ProjectEditor'
 import RendererDemoPage from './pages/RendererDemoPage'
 import TemplatesPage from './pages/TemplatesPage'
 import VisualEditorPage from './pages/VisualEditorPage'
+import ProjectPreviewPage from './pages/ProjectPreviewPage'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/projects/new" element={<RequireAuth><NewProjectPage /></RequireAuth>} />
         <Route path="/projects/:id" element={<RequireAuth><ProjectEditor /></RequireAuth>} />
         <Route path="/projects/:id/visual" element={<RequireAuth><VisualEditorPage /></RequireAuth>} />
+        <Route path="/projects/:id/preview" element={<RequireAuth><ProjectPreviewPage /></RequireAuth>} />
         <Route path="/editor" element={<RequireAuth><VisualEditorPage /></RequireAuth>} />
         <Route path="/renderer-demo" element={<RendererDemoPage />} />
       </Routes>

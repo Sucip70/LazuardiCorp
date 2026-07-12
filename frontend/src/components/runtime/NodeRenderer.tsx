@@ -7,7 +7,7 @@ import {
   getRuntimeVarsSnapshot,
   subscribeRuntimeVars,
 } from '../../renderer/runtimeVars'
-import type { JsonEventDefinition, NormalizedNode } from '../../renderer/types'
+import type { ActionHandler, JsonEventDefinition, NormalizedNode } from '../../renderer/types'
 import { resolveClassName, resolveInlineStyle } from '../../editor/utils/canvasUtils'
 
 type NodeRendererProps = {
@@ -18,6 +18,8 @@ type NodeRendererProps = {
   onSelect?: (id: string) => void
   editable?: boolean
   renderChild?: (childId: string) => ReactNode
+  /** Merge over defaultActionHandlers (e.g. preview navigate). */
+  actionHandlers?: Record<string, ActionHandler>
 }
 
 export function RuntimeNodeRenderer({
@@ -28,6 +30,7 @@ export function RuntimeNodeRenderer({
   onSelect,
   editable = false,
   renderChild,
+  actionHandlers,
 }: NodeRendererProps) {
   // Re-render when runtime vars change (preview bindings like {{vars.total}})
   useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
@@ -49,16 +52,11 @@ export function RuntimeNodeRenderer({
     return null
   }
 
+  const handlers = { ...defaultActionHandlers, ...actionHandlers }
   const nodeEvents = (node.events ?? {}) as Record<string, JsonEventDefinition>
   const interactiveProps = editable
     ? {}
-    : buildEventHandlers(
-        node.id,
-        node.type,
-        nodeEvents,
-        boundProps,
-        defaultActionHandlers,
-      )
+    : buildEventHandlers(node.id, node.type, nodeEvents, boundProps, handlers)
 
   const childElements =
     entry.acceptsChildren !== false && (node.children?.length ?? 0) > 0
@@ -75,6 +73,7 @@ export function RuntimeNodeRenderer({
               selectedId={selectedId}
               onSelect={onSelect}
               editable={editable}
+              actionHandlers={actionHandlers}
             />
           )
         })

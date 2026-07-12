@@ -11,7 +11,6 @@ import {
   type PageRecord,
 } from '../api/pages'
 import { getProject, getProjectV1, updateProjectV1 } from '../api/projects'
-import { fetchProjectPreview, openPreviewHtml } from '../api/preview'
 import { SaveAsTemplateModal } from '../components/templates/SaveAsTemplateModal'
 import { createEmptyDocument } from '../components/registry'
 import { EditorShell } from '../editor/layout/EditorShell'
@@ -361,9 +360,22 @@ export default function VisualEditorPage() {
 
     try {
       await persist()
-      openPreviewHtml(await fetchProjectPreview(id))
+      const currentPath =
+        usePagesStore.getState().pages.find(
+          (p) => p.id === useVariablesStore.getState().activePageId,
+        )?.path ?? '/'
+      const url = `/projects/${id}/preview?path=${encodeURIComponent(currentPath)}`
+      const tab = window.open(url, '_blank')
+      if (!tab) {
+        throw new Error('Popup blocked — allow popups to open preview')
+      }
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Preview failed'
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Preview failed'
       setSaveStatus('error', message)
     }
   }, [id, persist, setPreviewMode, setSaveStatus])
