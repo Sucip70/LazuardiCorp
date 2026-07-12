@@ -21,6 +21,7 @@ export type EditorShellProps = {
   onPreview?: () => void
   onExport?: () => void
   onSaveAsTemplate?: () => void
+  onRenameProject?: (name: string) => void | Promise<void>
   onSelectPage?: (pageId: string) => void | Promise<void>
   onAddPage?: (name: string) => void | Promise<void>
   onRenamePage?: (pageId: string, name: string) => void | Promise<void>
@@ -36,6 +37,7 @@ export function EditorShell({
   onPreview,
   onExport,
   onSaveAsTemplate,
+  onRenameProject,
   onSelectPage,
   onAddPage,
   onRenamePage,
@@ -84,6 +86,7 @@ export function EditorShell({
           onPreview={onPreview}
           onExport={onExport}
           onSaveAsTemplate={onSaveAsTemplate}
+          onRenameProject={onRenameProject}
         />
 
         <div className="relative flex min-h-0 flex-1">

@@ -352,6 +352,25 @@ export default function VisualEditorPage() {
     [id, removePage, applyPageDocument, loadDocument, setSaveStatus],
   )
 
+  const handleRenameProject = useCallback(
+    async (name: string) => {
+      const trimmed = name.trim()
+      if (!trimmed) return
+      setProjectName(trimmed)
+      if (!id) return
+      try {
+        await updateProjectV1(id, { name: trimmed })
+        setSaveStatus('saved')
+        window.setTimeout(() => setSaveStatus('idle'), 1500)
+      } catch (err) {
+        const message = err instanceof ApiError ? err.message : 'Failed to rename project'
+        setSaveStatus('error', message)
+        throw err
+      }
+    },
+    [id, setSaveStatus],
+  )
+
   const handlePreview = useCallback(async () => {
     if (!id) {
       setPreviewMode(true)
@@ -412,6 +431,7 @@ export default function VisualEditorPage() {
         onPreview={handlePreview}
         onExport={handleExport}
         onSaveAsTemplate={id ? () => setSaveTemplateOpen(true) : undefined}
+        onRenameProject={handleRenameProject}
         onSelectPage={id ? handleSelectPage : undefined}
         onAddPage={id ? handleAddPage : undefined}
         onRenamePage={id ? handleRenamePage : undefined}

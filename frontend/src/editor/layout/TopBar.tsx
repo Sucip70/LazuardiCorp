@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { clearAllVars } from '../../renderer/runtimeVars'
 import { useCollaboration } from '../store/collaborationStore'
@@ -12,6 +13,7 @@ type TopBarProps = {
   onPreview?: () => void
   onExport?: () => void
   onSaveAsTemplate?: () => void
+  onRenameProject?: (name: string) => void | Promise<void>
 }
 
 export function TopBar({
@@ -22,6 +24,7 @@ export function TopBar({
   onPreview,
   onExport,
   onSaveAsTemplate,
+  onRenameProject,
 }: TopBarProps) {
   const saveStatus = useUIStore((s) => s.saveStatus)
   const previewMode = useUIStore((s) => s.previewMode)
@@ -33,6 +36,39 @@ export function TopBar({
   const zoomOut = useEditorStore((s) => s.zoomOut)
   const resetZoom = useEditorStore((s) => s.resetZoom)
   const { collaborators, connectionStatus } = useCollaboration()
+
+  const [editingName, setEditingName] = useState(false)
+  const [draftName, setDraftName] = useState(projectName)
+  const [renaming, setRenaming] = useState(false)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!editingName) setDraftName(projectName)
+  }, [projectName, editingName])
+
+  useEffect(() => {
+    if (!editingName) return
+    nameInputRef.current?.focus()
+    nameInputRef.current?.select()
+  }, [editingName])
+
+  async function commitRename() {
+    const trimmed = draftName.trim()
+    if (!trimmed || trimmed === projectName || !onRenameProject) {
+      setDraftName(projectName)
+      setEditingName(false)
+      return
+    }
+    setRenaming(true)
+    try {
+      await onRenameProject(trimmed)
+      setEditingName(false)
+    } catch {
+      setDraftName(projectName)
+    } finally {
+      setRenaming(false)
+    }
+  }
 
   const saveLabel =
     saving || saveStatus === 'saving'
@@ -66,9 +102,46 @@ export function TopBar({
       </Link>
 
       <span className="hidden text-gray-300 sm:inline">/</span>
-      <p className="truncate text-sm font-medium text-gray-800 max-w-[120px] sm:max-w-xs">
-        {projectName}
-      </p>
+
+      {editingName ? (
+        <input
+          ref={nameInputRef}
+          value={draftName}
+          disabled={renaming}
+          onChange={(e) => setDraftName(e.target.value)}
+          onBlur={() => void commitRename()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              void commitRename()
+            }
+            if (e.key === 'Escape') {
+              setDraftName(projectName)
+              setEditingName(false)
+            }
+          }}
+          className="max-w-[160px] rounded-md border border-blue-300 px-2 py-1 text-sm font-medium text-gray-900 outline-none focus:ring-2 focus:ring-blue-500/20 sm:max-w-xs"
+          aria-label="Project name"
+        />
+      ) : (
+        <button
+          type="button"
+          title={onRenameProject ? 'Click to rename project' : undefined}
+          disabled={!onRenameProject}
+          onClick={() => {
+            if (!onRenameProject) return
+            setDraftName(projectName)
+            setEditingName(true)
+          }}
+          className={`truncate text-left text-sm font-medium max-w-[120px] sm:max-w-xs ${
+            onRenameProject
+              ? 'rounded px-1.5 py-0.5 text-gray-800 hover:bg-gray-100'
+              : 'text-gray-800'
+          }`}
+        >
+          {projectName}
+        </button>
+      )}
 
       {/* Collaboration avatars */}
       {collaborators.length > 0 && (
