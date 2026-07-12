@@ -7,6 +7,7 @@ import {
   listPages,
   loadPageDocument,
   savePageDocument,
+  updatePage,
   type PageRecord,
 } from '../api/pages'
 import { getProject, getProjectV1, updateProjectV1 } from '../api/projects'
@@ -292,6 +293,29 @@ export default function VisualEditorPage() {
     [id, persistCurrentPage, upsertPage, applyPageDocument, setSaveStatus],
   )
 
+  const handleRenamePage = useCallback(
+    async (pageId: string, name: string) => {
+      if (!id) return
+      const trimmed = name.trim()
+      if (!trimmed) return
+
+      setPagesBusy(true)
+      try {
+        const updated = await updatePage(id, pageId, { name: trimmed })
+        upsertPage(toEditorPage(updated))
+        setSaveStatus('saved')
+        window.setTimeout(() => setSaveStatus('idle'), 1500)
+      } catch (err) {
+        const message = err instanceof ApiError ? err.message : 'Failed to rename page'
+        setSaveStatus('error', message)
+        throw err
+      } finally {
+        setPagesBusy(false)
+      }
+    },
+    [id, upsertPage, setSaveStatus],
+  )
+
   const handleDeletePage = useCallback(
     async (pageId: string) => {
       if (!id) return
@@ -378,6 +402,7 @@ export default function VisualEditorPage() {
         onSaveAsTemplate={id ? () => setSaveTemplateOpen(true) : undefined}
         onSelectPage={id ? handleSelectPage : undefined}
         onAddPage={id ? handleAddPage : undefined}
+        onRenamePage={id ? handleRenamePage : undefined}
         onDeletePage={id ? handleDeletePage : undefined}
         pagesBusy={pagesBusy}
       />

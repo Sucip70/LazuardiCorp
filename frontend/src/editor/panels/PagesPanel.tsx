@@ -14,6 +14,7 @@ type PagesPanelProps = {
   activePageId?: string
   onSelectPage?: (pageId: string) => void
   onAddPage?: (name: string) => void | Promise<void>
+  onRenamePage?: (pageId: string, name: string) => void | Promise<void>
   onDeletePage?: (pageId: string) => void | Promise<void>
   busy?: boolean
 }
@@ -30,11 +31,20 @@ function TrashIcon({ className = 'h-3.5 w-3.5' }: { className?: string }) {
   )
 }
 
+function PencilIcon({ className = 'h-3.5 w-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="currentColor" className={className} aria-hidden>
+      <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+    </svg>
+  )
+}
+
 export function PagesPanel({
   pages: pagesProp,
   activePageId = '',
   onSelectPage,
   onAddPage,
+  onRenamePage,
   onDeletePage,
   busy = false,
 }: PagesPanelProps) {
@@ -44,10 +54,15 @@ export function PagesPanel({
   const [modalOpen, setModalOpen] = useState(false)
   const [pageName, setPageName] = useState('New page')
   const [submitting, setSubmitting] = useState(false)
+  const [editTarget, setEditTarget] = useState<EditorPage | null>(null)
+  const [editName, setEditName] = useState('')
+  const [renaming, setRenaming] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<EditorPage | null>(null)
   const [deleting, setDeleting] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
   const titleId = useId()
+  const editTitleId = useId()
   const deleteTitleId = useId()
 
   const previewPath = suggestPagePath(
@@ -61,6 +76,12 @@ export function PagesPanel({
     return () => window.clearTimeout(t)
   }, [modalOpen])
 
+  useEffect(() => {
+    if (!editTarget) return
+    const t = window.setTimeout(() => editInputRef.current?.select(), 50)
+    return () => window.clearTimeout(t)
+  }, [editTarget])
+
   function openModal() {
     if (!onAddPage || busy) return
     setPageName('New page')
@@ -70,6 +91,17 @@ export function PagesPanel({
   function closeModal() {
     if (submitting) return
     setModalOpen(false)
+  }
+
+  function openEditModal(page: EditorPage) {
+    if (!onRenamePage || busy) return
+    setEditTarget(page)
+    setEditName(page.name)
+  }
+
+  function closeEditModal() {
+    if (renaming) return
+    setEditTarget(null)
   }
 
   function closeDeleteModal() {
@@ -90,6 +122,23 @@ export function PagesPanel({
     }
   }
 
+  async function handleRenameSubmit(e: FormEvent) {
+    e.preventDefault()
+    const name = editName.trim()
+    if (!name || !editTarget || !onRenamePage) return
+    if (name === editTarget.name) {
+      setEditTarget(null)
+      return
+    }
+    setRenaming(true)
+    try {
+      await onRenamePage(editTarget.id, name)
+      setEditTarget(null)
+    } finally {
+      setRenaming(false)
+    }
+  }
+
   async function handleConfirmDelete() {
     if (!deleteTarget || !onDeletePage) return
     setDeleting(true)
@@ -100,6 +149,8 @@ export function PagesPanel({
       setDeleting(false)
     }
   }
+
+  const actionCount = (onRenamePage ? 1 : 0) + (onDeletePage ? 1 : 0)
 
   return (
     <div className="flex h-full flex-col">
@@ -120,13 +171,20 @@ export function PagesPanel({
         )}
         {pages.map((page) => {
           const active = page.id === activePageId
+          const showDelete = Boolean(onDeletePage && !page.isHome)
+          const showEdit = Boolean(onRenamePage)
+          const pr = showEdit && showDelete ? 'pr-14' : actionCount > 0 ? 'pr-8' : 'pr-3'
           return (
             <li key={page.id} className="group relative">
               <button
                 type="button"
                 onClick={() => onSelectPage?.(page.id)}
+                onDoubleClick={(e) => {
+                  e.preventDefault()
+                  if (showEdit) openEditModal(page)
+                }}
                 disabled={busy}
-                className={`mb-1 flex w-full flex-col rounded-lg px-3 py-2 pr-8 text-left text-sm transition-colors disabled:opacity-60 ${
+                className={`mb-1 flex w-full flex-col rounded-lg px-3 py-2 text-left text-sm transition-colors disabled:opacity-60 ${pr} ${
                   active
                     ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200'
                     : 'text-gray-700 hover:bg-gray-50'
@@ -140,20 +198,39 @@ export function PagesPanel({
                 </span>
                 <span className="text-xs text-gray-400">{page.path}</span>
               </button>
-              {onDeletePage && !page.isHome && (
-                <button
-                  type="button"
-                  title="Delete page"
-                  aria-label={`Delete ${page.name}`}
-                  disabled={busy}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setDeleteTarget(page)
-                  }}
-                  className="absolute right-2 top-2.5 inline-flex rounded p-1 text-gray-400 opacity-0 hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 disabled:opacity-50"
-                >
-                  <TrashIcon />
-                </button>
+              {(showEdit || showDelete) && (
+                <div className="absolute right-1.5 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                  {showEdit && (
+                    <button
+                      type="button"
+                      title="Rename page"
+                      aria-label={`Rename ${page.name}`}
+                      disabled={busy}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openEditModal(page)
+                      }}
+                      className="inline-flex rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-50"
+                    >
+                      <PencilIcon />
+                    </button>
+                  )}
+                  {showDelete && (
+                    <button
+                      type="button"
+                      title="Delete page"
+                      aria-label={`Delete ${page.name}`}
+                      disabled={busy}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteTarget(page)
+                      }}
+                      className="inline-flex rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                    >
+                      <TrashIcon />
+                    </button>
+                  )}
+                </div>
               )}
             </li>
           )
@@ -213,6 +290,61 @@ export function PagesPanel({
                   className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   {submitting ? 'Creating…' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeEditModal()
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={editTitleId}
+            className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl"
+          >
+            <h2 id={editTitleId} className="text-base font-semibold text-gray-900">
+              Rename page
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Path stays <span className="font-mono text-gray-600">{editTarget.path}</span>
+            </p>
+            <form className="mt-4 flex flex-col gap-3" onSubmit={(e) => void handleRenameSubmit(e)}>
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium text-gray-700">Name</span>
+                <input
+                  ref={editInputRef}
+                  required
+                  autoFocus
+                  className="rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  disabled={renaming}
+                />
+              </label>
+              <div className="mt-1 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  disabled={renaming}
+                  className="rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={renaming || !editName.trim()}
+                  className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {renaming ? 'Saving…' : 'Save'}
                 </button>
               </div>
             </form>

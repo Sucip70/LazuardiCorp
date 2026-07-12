@@ -23,6 +23,7 @@ export type EditorShellProps = {
   onSaveAsTemplate?: () => void
   onSelectPage?: (pageId: string) => void | Promise<void>
   onAddPage?: (name: string) => void | Promise<void>
+  onRenamePage?: (pageId: string, name: string) => void | Promise<void>
   onDeletePage?: (pageId: string) => void | Promise<void>
   pagesBusy?: boolean
 }
@@ -37,6 +38,7 @@ export function EditorShell({
   onSaveAsTemplate,
   onSelectPage,
   onAddPage,
+  onRenamePage,
   onDeletePage,
   pagesBusy = false,
 }: EditorShellProps) {
@@ -104,6 +106,7 @@ export function EditorShell({
                 }`}
                 onSelectPage={onSelectPage}
                 onAddPage={onAddPage}
+                onRenamePage={onRenamePage}
                 onDeletePage={onDeletePage}
                 pagesBusy={pagesBusy}
               />

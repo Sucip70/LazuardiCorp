@@ -61,7 +61,6 @@ export function PropsPanel() {
   const selectedId = useEditorStore((s) => s.selectedId)
   const node = useEditorStore((s) => (selectedId ? s.nodes[selectedId] : null))
   const breakpoint = useEditorStore((s) => s.breakpoint)
-  const updateNodeMeta = useEditorStore((s) => s.updateNodeMeta)
   const deleteNode = useEditorStore((s) => s.deleteNode)
 
   if (!node) {
@@ -79,7 +78,6 @@ export function PropsPanel() {
   return (
     <div className="flex h-full flex-col overflow-auto">
       <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Component</p>
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-900">
             {node.meta?.label ?? catalog?.label ?? node.type}
@@ -96,17 +94,6 @@ export function PropsPanel() {
         )}
         <p className="mt-1 break-all text-[10px] text-gray-400">{node.id}</p>
       </div>
-
-      <AccordionSection title="Meta" defaultOpen>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium text-gray-700">Display label</span>
-          <input
-            className="rounded-md border border-gray-300 px-3 py-2"
-            value={node.meta?.label ?? ''}
-            onChange={(e) => updateNodeMeta(node.id, { label: e.target.value })}
-          />
-        </label>
-      </AccordionSection>
 
       {GROUP_ORDER.map((group) => {
         const groupFields = grouped.get(group)

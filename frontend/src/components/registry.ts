@@ -17,8 +17,12 @@ export function createNode(type: string, id: string, parentId: string | null): C
 export function createEmptyDocument(): PageDocument {
   const root = createNode('Container', 'cmp_root', null)
   root.meta = { label: 'Page Root', locked: false }
+  root.props = {
+    ...root.props,
+    maxWidth: 'full',
+  }
   root.styles = {
-    className: 'min-h-[480px] w-full flex flex-col gap-4 rounded-lg bg-white p-6 shadow-sm',
+    className: 'h-[640px] w-full flex flex-col gap-4 rounded-lg bg-white p-6 shadow-sm',
   }
   return { rootIds: [root.id], nodes: { [root.id]: root } }
 }

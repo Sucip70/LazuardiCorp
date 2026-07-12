@@ -18,6 +18,7 @@ type LeftSidebarProps = {
   className?: string
   onSelectPage?: (pageId: string) => void
   onAddPage?: (name: string) => void | Promise<void>
+  onRenamePage?: (pageId: string, name: string) => void | Promise<void>
   onDeletePage?: (pageId: string) => void | Promise<void>
   pagesBusy?: boolean
 }
@@ -26,6 +27,7 @@ export function LeftSidebar({
   className = '',
   onSelectPage,
   onAddPage,
+  onRenamePage,
   onDeletePage,
   pagesBusy = false,
 }: LeftSidebarProps) {
@@ -73,6 +75,7 @@ export function LeftSidebar({
             activePageId={activePageId}
             onSelectPage={handleSelectPage}
             onAddPage={onAddPage}
+            onRenamePage={onRenamePage}
             onDeletePage={onDeletePage}
             busy={pagesBusy}
           />
