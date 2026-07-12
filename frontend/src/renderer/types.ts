@@ -45,6 +45,10 @@ export type ActionContext = {
   nodeId: string
   type: string
   event: string
+  /** Native DOM event when available */
+  nativeEvent?: unknown
+  /** Extracted input/change value (string, number, or checkbox boolean) */
+  eventValue?: string | number | boolean | null
 }
 
 export type JsonRendererInput =

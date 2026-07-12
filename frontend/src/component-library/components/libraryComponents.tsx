@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { resolveControlledFieldValue, wrapBindToVarChange } from '../../renderer/formBindings'
 import type { RenderComponentProps } from '../../renderer/types'
 import {
   alertVariantClasses,
@@ -260,6 +261,15 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
   const helperId = useId()
   const label = String(node.props.label ?? 'Label')
   const helper = String(node.props.helperText ?? '')
+  const controlled = resolveControlledFieldValue(node.props)
+  const handlers = wrapBindToVarChange(node.props, eventHandlers)
+  if (controlled !== undefined && !handlers.onChange) {
+    handlers.onChange = () => {}
+  }
+  const valueProps =
+    controlled !== undefined
+      ? { value: controlled }
+      : { defaultValue: String(node.props.defaultValue ?? '') }
   return (
     <div className={className} style={style}>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">{label}</label>
@@ -270,11 +280,12 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
         placeholder={String(node.props.placeholder ?? '')}
         required={Boolean(node.props.required)}
         disabled={Boolean(node.props.disabled)}
-        defaultValue={String(node.props.defaultValue ?? '')}
+        readOnly={Boolean(node.props.readOnly)}
         aria-describedby={helper ? helperId : undefined}
         className={fieldClass}
+        {...valueProps}
         {...attributes}
-        {...eventHandlers}
+        {...handlers}
       />
       {helper && <p id={helperId} className="mt-1 text-xs text-gray-500">{helper}</p>}
     </div>
@@ -283,6 +294,15 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
 
 export function TextAreaLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
   const inputId = useId()
+  const controlled = resolveControlledFieldValue(node.props)
+  const handlers = wrapBindToVarChange(node.props, eventHandlers)
+  if (controlled !== undefined && !handlers.onChange) {
+    handlers.onChange = () => {}
+  }
+  const valueProps =
+    controlled !== undefined
+      ? { value: controlled }
+      : { defaultValue: String(node.props.defaultValue ?? '') }
   return (
     <div className={className} style={style}>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">{String(node.props.label ?? 'Label')}</label>
@@ -293,10 +313,11 @@ export function TextAreaLib({ node, className, style, attributes, eventHandlers 
         placeholder={String(node.props.placeholder ?? '')}
         required={Boolean(node.props.required)}
         disabled={Boolean(node.props.disabled)}
-        defaultValue={String(node.props.defaultValue ?? '')}
+        readOnly={Boolean(node.props.readOnly)}
         className={fieldClass}
+        {...valueProps}
         {...attributes}
-        {...eventHandlers}
+        {...handlers}
       />
     </div>
   )
@@ -307,6 +328,15 @@ type SelectOption = { label: string; value: string }
 export function SelectLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
   const inputId = useId()
   const options = (node.props.options as SelectOption[] | undefined) ?? []
+  const controlled = resolveControlledFieldValue(node.props)
+  const handlers = wrapBindToVarChange(node.props, eventHandlers)
+  if (controlled !== undefined && !handlers.onChange) {
+    handlers.onChange = () => {}
+  }
+  const valueProps =
+    controlled !== undefined
+      ? { value: controlled }
+      : { defaultValue: String(node.props.defaultValue ?? '') }
   return (
     <div className={className} style={style}>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">{String(node.props.label ?? 'Label')}</label>
@@ -315,10 +345,10 @@ export function SelectLib({ node, className, style, attributes, eventHandlers }:
         name={String(node.props.name ?? 'field')}
         required={Boolean(node.props.required)}
         disabled={Boolean(node.props.disabled)}
-        defaultValue={String(node.props.defaultValue ?? '')}
         className={fieldClass}
+        {...valueProps}
         {...attributes}
-        {...eventHandlers}
+        {...handlers}
       >
         {node.props.placeholder ? <option value="">{String(node.props.placeholder)}</option> : null}
         {options.map((opt) => (

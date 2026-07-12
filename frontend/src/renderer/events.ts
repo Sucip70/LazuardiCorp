@@ -8,6 +8,7 @@ import {
   type MathOp,
   type StringOp,
 } from './formulas'
+import { extractEventValue } from './formBindings'
 import { clearAllVars, clearTemporaryVars, clearVar, setVar, type VarScope } from './runtimeVars'
 
 const DOM_EVENT_MAP: Record<string, string> = {
@@ -65,7 +66,13 @@ export function buildEventHandlers(
         event.stopPropagation()
       }
 
-      const context: ActionContext = { nodeId, type, event: eventName }
+      const context: ActionContext = {
+        nodeId,
+        type,
+        event: eventName,
+        nativeEvent,
+        eventValue: extractEventValue(nativeEvent),
+      }
       handler(config.payload, context)
     }
   }
@@ -127,10 +134,18 @@ export const defaultActionHandlers: Record<string, ActionHandler> = {
   },
 
   /** Set a runtime variable (session by default, survives page switches in the same tab). */
-  setVar: (payload) => {
+  setVar: (payload, context) => {
     const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
     if (!key) return
-    const value = resolveValue(payload?.value ?? payload?.expr ?? '')
+    const raw = payload?.value ?? payload?.expr ?? ''
+    const useEvent =
+      payload?.fromEvent === true ||
+      raw === '$event' ||
+      raw === '{{$event}}' ||
+      raw === '@$event'
+    const value = useEvent
+      ? ((context?.eventValue ?? null) as string | number | boolean | null)
+      : resolveValue(raw)
     setVar(key, value, scopeFromPayload(payload))
   },
 

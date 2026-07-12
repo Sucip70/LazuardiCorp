@@ -114,8 +114,14 @@ export type InputProps = {
   placeholder?: string
   required?: boolean
   disabled?: boolean
+  readOnly?: boolean
   helperText?: string
   defaultValue?: string
+  /** One-way display binding, e.g. "{{result}}" */
+  value?: string
+  /** Two-way: write typed value into this runtime variable */
+  bindToVar?: string
+  bindScope?: 'global' | 'temporary'
 }
 
 export type TextAreaProps = {
@@ -125,7 +131,11 @@ export type TextAreaProps = {
   rows?: number
   required?: boolean
   disabled?: boolean
+  readOnly?: boolean
   defaultValue?: string
+  value?: string
+  bindToVar?: string
+  bindScope?: 'global' | 'temporary'
 }
 
 export type SelectOption = { label: string; value: string }
@@ -138,6 +148,9 @@ export type SelectProps = {
   required?: boolean
   disabled?: boolean
   defaultValue?: string
+  value?: string
+  bindToVar?: string
+  bindScope?: 'global' | 'temporary'
 }
 
 export type CheckboxProps = {

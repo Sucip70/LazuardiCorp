@@ -52,7 +52,7 @@ export type ComponentCategory =
 
 export const EVENT_PRESETS = {
   click: { name: 'onClick', description: 'Fires when the element is clicked', defaultAction: 'navigate' },
-  change: { name: 'onChange', description: 'Fires when the value changes', defaultAction: 'custom' },
+  change: { name: 'onChange', description: 'Fires when the value changes', defaultAction: 'setVar' },
   submit: { name: 'onSubmit', description: 'Fires when a form is submitted', defaultAction: 'submitForm' },
   focus: { name: 'onFocus', description: 'Fires when the element receives focus' },
   blur: { name: 'onBlur', description: 'Fires when the element loses focus' },

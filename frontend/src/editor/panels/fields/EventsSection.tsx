@@ -196,6 +196,7 @@ function PayloadFields({
   }
 
   if (action === 'setVar') {
+    const fromEvent = payload.fromEvent === true || payload.value === '$event'
     return (
       <>
         <KeyField
@@ -203,15 +204,40 @@ function PayloadFields({
           onChange={onChange}
           hint="Use in text as {{vars.total}} or {{total}}"
         />
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>Value</span>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
           <input
-            className={inputClass}
-            value={String(payload.value ?? '')}
-            onChange={(e) => setField('value', e.target.value)}
-            placeholder="hello / 42 / {{vars.other}} / @other"
+            type="checkbox"
+            checked={fromEvent}
+            onChange={(e) => {
+              if (e.target.checked) {
+                onChange({ ...payload, fromEvent: true, value: '$event' })
+              } else {
+                const next = { ...payload }
+                delete next.fromEvent
+                if (next.value === '$event') next.value = ''
+                onChange(next)
+              }
+            }}
           />
+          Use field value ($event)
         </label>
+        {!fromEvent && (
+          <label className="flex flex-col gap-1">
+            <span className={labelClass}>Value</span>
+            <input
+              className={inputClass}
+              value={String(payload.value ?? '')}
+              onChange={(e) => setField('value', e.target.value)}
+              placeholder="hello / 42 / {{vars.other}} / @other"
+            />
+          </label>
+        )}
+        {fromEvent && (
+          <span className={hintClass}>
+            On change/click, stores the input&apos;s current value into the variable.
+            Tip: prefer &quot;Bind to variable&quot; on the Input props for calculators.
+          </span>
+        )}
         <ScopeField payload={payload} onChange={onChange} />
       </>
     )
@@ -408,6 +434,7 @@ export function EventsSection({ nodeId, supportedEvents }: EventsSectionProps) {
     <AccordionSection title="Events" defaultOpen={false}>
       <p className="text-[11px] text-gray-500">
         In preview, bind text with {'{{vars.name}}'}, {'{{global.name}}'}, or {'{{temp.name}}'}.
+        Form inputs can use Behavior → &quot;Bind to variable&quot;, or Value (bound) like {'{{result}}'}.
         Manage definitions in the Variables left panel.
       </p>
       {supportedEvents.map((evt) => {
