@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react'
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import {
   clearTemporaryVars,
   clearVar,
@@ -30,24 +30,41 @@ function InfoTip({ text }: { text: string }) {
   )
 }
 
-type AddVariableModalProps = {
+type VariableFormPayload = { key: string; value: string; description: string }
+
+type VariableFormModalProps = {
   open: boolean
   kind: 'global' | 'temporary'
+  mode: 'add' | 'edit'
+  initial?: VariableFormPayload
   existingKeys: string[]
   onClose: () => void
-  onSubmit: (payload: { key: string; value: string; description: string }) => void
+  onSubmit: (payload: VariableFormPayload) => void
 }
 
-function AddVariableModal({ open, kind, existingKeys, onClose, onSubmit }: AddVariableModalProps) {
-  const [key, setKey] = useState('')
-  const [value, setValue] = useState('')
-  const [description, setDescription] = useState('')
+function VariableFormModal({
+  open,
+  kind,
+  mode,
+  initial,
+  existingKeys,
+  onClose,
+  onSubmit,
+}: VariableFormModalProps) {
+  const [key, setKey] = useState(initial?.key ?? '')
+  const [value, setValue] = useState(initial?.value ?? '')
+  const [description, setDescription] = useState(initial?.description ?? '')
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!open) return
+    setKey(initial?.key ?? '')
+    setValue(initial?.value ?? '')
+    setDescription(initial?.description ?? '')
+    setError(null)
+  }, [open, initial])
+
   function resetAndClose() {
-    setKey('')
-    setValue('')
-    setDescription('')
     setError(null)
     onClose()
   }
@@ -59,7 +76,8 @@ function AddVariableModal({ open, kind, existingKeys, onClose, onSubmit }: AddVa
       setError('Key must start with a letter or _ (e.g. cartTotal)')
       return
     }
-    if (existingKeys.includes(trimmed)) {
+    const takenByOther = existingKeys.includes(trimmed) && trimmed !== initial?.key
+    if (takenByOther) {
       setError('A variable with this key already exists')
       return
     }
@@ -67,20 +85,22 @@ function AddVariableModal({ open, kind, existingKeys, onClose, onSubmit }: AddVa
     resetAndClose()
   }
 
+  const title =
+    mode === 'edit'
+      ? kind === 'global'
+        ? 'Edit global variable'
+        : 'Edit temporary variable'
+      : kind === 'global'
+        ? 'Add global variable'
+        : 'Add temporary variable'
+
   return (
     <ModalPortal open={open} onClose={resetAndClose}>
       <form
         onSubmit={handleSubmit}
         className="rounded-xl border border-gray-200 bg-white p-5 shadow-xl"
       >
-        <h2 className="text-lg font-semibold text-gray-900">
-          {kind === 'global' ? 'Add global variable' : 'Add temporary variable'}
-        </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          {kind === 'global'
-            ? 'Available on every page. Defaults are saved with the project.'
-            : 'Only for the current page. Cleared when you switch pages.'}
-        </p>
+        <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
 
         <label className="mt-4 block">
           <span className={labelClass}>Key</span>
@@ -126,7 +146,7 @@ function AddVariableModal({ open, kind, existingKeys, onClose, onSubmit }: AddVa
             type="submit"
             className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
-            Add
+            {mode === 'edit' ? 'Save' : 'Add'}
           </button>
         </div>
       </form>
@@ -138,19 +158,22 @@ function SectionHeader({
   title,
   tip,
   onAdd,
+  trailing,
 }: {
   title: string
   tip: string
   onAdd: () => void
+  trailing?: ReactNode
 }) {
   return (
-    <div className="flex items-center gap-2 px-3 pt-3">
-      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+    <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-1">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</h3>
       <InfoTip text={tip} />
+      {trailing}
       <button
         type="button"
         onClick={onAdd}
-        className="ml-auto flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-base font-medium text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+        className="ml-auto flex h-6 w-6 items-center justify-center rounded border border-gray-200 text-sm font-medium text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
         title={`Add ${title.toLowerCase().replace(/s$/, '')}`}
         aria-label={`Add ${title}`}
       >
@@ -166,88 +189,87 @@ function GlobalSection() {
   const remove = useVariablesStore((s) => s.removeGlobalDef)
   useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
   const live = getGlobalVars()
-  const [addOpen, setAddOpen] = useState(false)
 
-  function updateDef(def: GlobalVariableDef, patch: Partial<GlobalVariableDef>) {
-    upsert({
-      id: def.id,
-      key: patch.key ?? def.key,
-      defaultValue: patch.defaultValue ?? def.defaultValue,
-      description: patch.description ?? def.description,
-    })
-  }
+  const [modal, setModal] = useState<{ mode: 'add' | 'edit'; def?: GlobalVariableDef } | null>(
+    null,
+  )
 
   return (
-    <section className="border-b border-gray-100 pb-4">
+    <section className="border-b border-gray-100 pb-2">
       <SectionHeader
-        title="Global variables"
+        title="Global"
         tip="Shared across all pages. Bind with {{global.name}} or {{name}}. Defaults save with the project."
-        onAdd={() => setAddOpen(true)}
+        onAdd={() => setModal({ mode: 'add' })}
       />
 
-      <ul className="mt-3 space-y-2 px-3">
+      <ul className="px-2">
         {defs.length === 0 && (
-          <li className="rounded-md border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-400">
-            No global variables yet
-          </li>
+          <li className="px-2 py-3 text-center text-[11px] text-gray-400">No global variables</li>
         )}
         {defs.map((def) => (
-          <li key={def.id} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <label className="min-w-0 flex-1">
-                <span className={labelClass}>Key</span>
-                <input
-                  className={`${inputClass} mt-0.5 font-mono text-xs`}
-                  value={def.key}
-                  onChange={(e) => updateDef(def, { key: e.target.value })}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => remove(def.id)}
-                className="mt-5 shrink-0 rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50"
-              >
-                Remove
-              </button>
-            </div>
-            <label className="mt-2 block">
-              <span className={labelClass}>Default value</span>
-              <input
-                className={`${inputClass} mt-0.5`}
-                value={def.defaultValue}
-                onChange={(e) => updateDef(def, { defaultValue: e.target.value })}
-              />
-            </label>
-            <label className="mt-2 block">
-              <span className={labelClass}>Description</span>
-              <input
-                className={`${inputClass} mt-0.5`}
-                value={def.description}
-                onChange={(e) => updateDef(def, { description: e.target.value })}
-                placeholder="Optional"
-              />
-            </label>
-            <p className="mt-2 truncate text-[11px] text-gray-400">
-              Live: <span className="font-mono text-gray-600">{String(live[def.key] ?? '—')}</span>
-            </p>
+          <li
+            key={def.id}
+            className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-gray-50"
+          >
             <button
               type="button"
-              className="mt-1 text-[11px] text-blue-600 hover:underline"
-              onClick={() => setVar(def.key, def.defaultValue, 'global')}
+              className="min-w-0 flex-1 text-left"
+              onClick={() => setModal({ mode: 'edit', def })}
+              title={def.description || 'Edit variable'}
             >
-              Reset live to default
+              <span className="block truncate font-mono text-xs font-medium text-gray-900">
+                {def.key}
+              </span>
+              <span className="block truncate text-[10px] text-gray-400">
+                {String(live[def.key] ?? (def.defaultValue || '—'))}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setVar(def.key, def.defaultValue, 'global')}
+              className="hidden rounded px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-50 group-hover:inline"
+              title="Reset live value to default"
+            >
+              ↺
+            </button>
+            <button
+              type="button"
+              onClick={() => remove(def.id)}
+              className="rounded px-1.5 py-0.5 text-[10px] text-red-500 opacity-0 hover:bg-red-50 group-hover:opacity-100"
+              title="Remove"
+            >
+              ×
             </button>
           </li>
         ))}
       </ul>
 
-      <AddVariableModal
-        open={addOpen}
+      <VariableFormModal
+        open={modal !== null}
         kind="global"
+        mode={modal?.mode ?? 'add'}
+        initial={
+          modal?.def
+            ? {
+                key: modal.def.key,
+                value: modal.def.defaultValue,
+                description: modal.def.description,
+              }
+            : undefined
+        }
         existingKeys={defs.map((d) => d.key)}
-        onClose={() => setAddOpen(false)}
+        onClose={() => setModal(null)}
         onSubmit={({ key, value, description }) => {
-          upsert({ key, defaultValue: value, description })
+          if (modal?.mode === 'edit' && modal.def) {
+            upsert({
+              id: modal.def.id,
+              key,
+              defaultValue: value,
+              description,
+            })
+          } else {
+            upsert({ key, defaultValue: value, description })
+          }
         }}
       />
     </section>
@@ -259,61 +281,78 @@ function TemporarySection() {
   const activePageId = useVariablesStore((s) => s.activePageId)
   const live = getTemporaryVars()
   const entries = Object.entries(live)
-  const [addOpen, setAddOpen] = useState(false)
+  const [modal, setModal] = useState<{ mode: 'add' | 'edit'; key?: string; value?: string } | null>(
+    null,
+  )
 
   return (
-    <section className="pb-4">
+    <section className="pb-2">
       <SectionHeader
-        title="Temporary variables"
+        title="Temporary"
         tip={`Only for the current page (${activePageId}). Cleared when the page changes. Bind with {{temp.name}}.`}
-        onAdd={() => setAddOpen(true)}
+        onAdd={() => setModal({ mode: 'add' })}
+        trailing={
+          entries.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => clearTemporaryVars()}
+              className="text-[10px] text-amber-700 hover:underline"
+            >
+              Clear
+            </button>
+          ) : null
+        }
       />
 
-      <div className="mt-1 flex justify-end px-3">
-        {entries.length > 0 && (
-          <button
-            type="button"
-            onClick={() => clearTemporaryVars()}
-            className="text-[11px] text-amber-800 hover:underline"
-          >
-            Clear all
-          </button>
-        )}
-      </div>
-
-      <ul className="mt-2 space-y-2 px-3">
+      <ul className="px-2">
         {entries.length === 0 && (
-          <li className="rounded-md border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-400">
-            No temporary variables on this page
-          </li>
+          <li className="px-2 py-3 text-center text-[11px] text-gray-400">No temporary variables</li>
         )}
         {entries.map(([key, value]) => (
-          <li key={key} className="rounded-lg border border-amber-100 bg-amber-50/40 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-xs font-medium text-gray-800">{key}</span>
-              <button
-                type="button"
-                onClick={() => clearVar(key, 'temporary')}
-                className="text-xs text-red-600 hover:underline"
-              >
-                Remove
-              </button>
-            </div>
-            <input
-              className={`${inputClass} mt-2`}
-              value={String(value ?? '')}
-              onChange={(e) => setVar(key, e.target.value, 'temporary')}
-            />
+          <li
+            key={key}
+            className="group flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-amber-50/60"
+          >
+            <button
+              type="button"
+              className="min-w-0 flex-1 text-left"
+              onClick={() => setModal({ mode: 'edit', key, value: String(value ?? '') })}
+              title="Edit variable"
+            >
+              <span className="block truncate font-mono text-xs font-medium text-gray-900">
+                {key}
+              </span>
+              <span className="block truncate text-[10px] text-gray-400">
+                {String(value ?? '—')}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => clearVar(key, 'temporary')}
+              className="rounded px-1.5 py-0.5 text-[10px] text-red-500 opacity-0 hover:bg-red-50 group-hover:opacity-100"
+              title="Remove"
+            >
+              ×
+            </button>
           </li>
         ))}
       </ul>
 
-      <AddVariableModal
-        open={addOpen}
+      <VariableFormModal
+        open={modal !== null}
         kind="temporary"
+        mode={modal?.mode ?? 'add'}
+        initial={
+          modal?.key !== undefined
+            ? { key: modal.key, value: modal.value ?? '', description: '' }
+            : undefined
+        }
         existingKeys={entries.map(([key]) => key)}
-        onClose={() => setAddOpen(false)}
+        onClose={() => setModal(null)}
         onSubmit={({ key, value }) => {
+          if (modal?.mode === 'edit' && modal.key && modal.key !== key) {
+            clearVar(modal.key, 'temporary')
+          }
           setVar(key, value, 'temporary')
         }}
       />
