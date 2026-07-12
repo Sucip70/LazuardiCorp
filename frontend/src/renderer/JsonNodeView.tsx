@@ -1,7 +1,12 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useSyncExternalStore } from 'react'
 import type { Breakpoint } from '../types/editor'
 import { buildEventHandlers } from './events'
+import { bindProps, isNodeVisible } from './formulas'
 import { resolveRenderer } from './registry'
+import {
+  getRuntimeVarsSnapshot,
+  subscribeRuntimeVars,
+} from './runtimeVars'
 import { resolveClassName, resolveInlineStyle } from './styles'
 import type { ActionHandler, NormalizedDocument } from './types'
 
@@ -36,22 +41,28 @@ export const JsonNodeView = memo(function JsonNodeView({
   breakpoint,
   actionHandlers,
 }: JsonNodeViewProps) {
+  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
+
   const node = nodes[nodeId]
   const entry = node ? resolveRenderer(node.type) : undefined
 
   const className = node ? resolveClassName(node, breakpoint) : ''
   const style = node ? resolveInlineStyle(node, breakpoint) : {}
+  const boundProps = node ? bindProps(node.props ?? {}) : {}
   const eventHandlers = useMemo(
     () =>
       node
-        ? buildEventHandlers(node.id, node.type, node.events, node.props, actionHandlers)
+        ? buildEventHandlers(node.id, node.type, node.events, boundProps, actionHandlers)
         : {},
-    [node, actionHandlers],
+    // boundProps identity changes when vars change; that is intentional
+    [node, boundProps, actionHandlers],
   )
 
   if (!node || !entry) return null
+  if (!isNodeVisible(node.props)) return null
 
   const Component = entry.component
+  const renderedNode = { ...node, props: boundProps }
   const childElements =
     entry.acceptsChildren !== false && node.children.length > 0
       ? node.children.map((childId) => (
@@ -67,7 +78,7 @@ export const JsonNodeView = memo(function JsonNodeView({
 
   return (
     <Component
-      node={node}
+      node={renderedNode}
       className={className}
       style={style}
       attributes={node.attributes}

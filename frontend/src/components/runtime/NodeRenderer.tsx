@@ -2,7 +2,7 @@ import { useSyncExternalStore, type CSSProperties, type ReactNode } from 'react'
 import type { Breakpoint, ComponentNode } from '../../types/editor'
 import { resolveRenderer } from '../../renderer/registry'
 import { buildEventHandlers, defaultActionHandlers } from '../../renderer/events'
-import { bindProps } from '../../renderer/formulas'
+import { bindProps, isNodeVisible } from '../../renderer/formulas'
 import {
   getRuntimeVarsSnapshot,
   subscribeRuntimeVars,
@@ -42,6 +42,13 @@ export function RuntimeNodeRenderer({
     : ''
 
   const boundProps = editable ? (node.props ?? {}) : bindProps(node.props ?? {})
+  const visible = isNodeVisible(node.props)
+
+  // Preview: honor hidden / showIf. Editor: always render so you can select & edit.
+  if (!editable && !visible) {
+    return null
+  }
+
   const nodeEvents = (node.events ?? {}) as Record<string, JsonEventDefinition>
   const interactiveProps = editable
     ? {}
@@ -94,7 +101,7 @@ export function RuntimeNodeRenderer({
     >
       <Component
         node={normalizedNode}
-        className={`${className} relative ${selectionClass}`.trim()}
+        className={`${className} relative ${selectionClass} ${editable && !visible ? 'opacity-40' : ''}`.trim()}
         style={style as CSSProperties}
         attributes={node.attributes ?? {}}
         eventHandlers={interactiveProps}

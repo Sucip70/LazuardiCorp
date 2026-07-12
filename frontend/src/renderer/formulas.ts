@@ -195,3 +195,22 @@ export function bindProps(props: Record<string, unknown>): Record<string, unknow
   }
   return next
 }
+
+/**
+ * Preview visibility: hide when `hidden` is true, or when `showIf` resolves empty/false.
+ * `showIf` examples: "{{total}}", "{{total}} !== " (any non-empty resolved string is shown).
+ */
+export function isNodeVisible(props: Record<string, unknown> | undefined): boolean {
+  if (!props) return true
+  if (props.hidden === true || props.hidden === 'true' || props.hidden === 1) return false
+
+  const showIf = props.showIf
+  if (showIf === undefined || showIf === null || showIf === '') return true
+
+  const resolved =
+    typeof showIf === 'string' ? resolveTemplate(showIf).trim() : String(showIf).trim()
+  if (!resolved) return false
+  const lower = resolved.toLowerCase()
+  if (lower === 'false' || lower === '0' || lower === 'null' || lower === 'undefined') return false
+  return true
+}

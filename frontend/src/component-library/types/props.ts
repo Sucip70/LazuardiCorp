@@ -122,6 +122,10 @@ export type InputProps = {
   /** Two-way: write typed value into this runtime variable */
   bindToVar?: string
   bindScope?: 'global' | 'temporary'
+  /** Hide entirely in preview */
+  hidden?: boolean
+  /** Show only when template resolves to a truthy value, e.g. "{{total}}" */
+  showIf?: string
 }
 
 export type TextAreaProps = {
