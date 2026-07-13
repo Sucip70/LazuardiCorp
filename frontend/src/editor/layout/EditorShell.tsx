@@ -7,7 +7,7 @@ import { useUIStore } from '../store/uiStore'
 import { useEditorStore } from '../store/editorStore'
 import { useVariablesStore } from '../store/variablesStore'
 import { setRuntimeContext } from '../../renderer/runtimeVars'
-import { Canvas } from '../canvas/Canvas'
+import { CenterWorkspace } from './CenterWorkspace'
 import { LeftSidebar } from './LeftSidebar'
 import { RightSidebar } from './RightSidebar'
 import { StatusBar } from './StatusBar'
@@ -116,10 +116,8 @@ export function EditorShell({
             </>
           )}
 
-          {/* Canvas */}
-          <main className="relative min-w-0 flex-1">
-            <Canvas previewMode={previewMode} />
-          </main>
+          {/* Center workspace: Canvas tab (pinned) + closable event editor tabs */}
+          <CenterWorkspace previewMode={previewMode} />
 
           {/* Right sidebar */}
           {rightOpen && (
