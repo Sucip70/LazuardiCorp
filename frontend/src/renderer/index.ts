@@ -1,7 +1,7 @@
 export { JsonRenderer, default } from './JsonRenderer'
 export { JsonNodeView } from './JsonNodeView'
 export { normalizeJsonInput, getDocumentNodeCount } from './normalize'
-export { buildEventHandlers, defaultActionHandlers } from './events'
+export { buildEventHandlers, defaultActionHandlers, getEventActions } from './events'
 export {
   setComponentAttr,
   getComponentAttr,
@@ -22,6 +22,7 @@ export type {
   JsonRendererInput,
   JsonRendererProps,
   JsonEventDefinition,
+  JsonEventAction,
   ActionHandler,
   ActionContext,
   RenderComponentProps,

@@ -1,54 +1,16 @@
+import { useEffect, useRef, useState } from 'react'
 import type { SupportedEvent } from '../../../component-library/types/catalog'
+import { getEventActions } from '../../../renderer/events'
 import type { JsonEventDefinition } from '../../../renderer/types'
+import {
+  actionsToScript,
+  EVENT_FUNCTION_CATALOG,
+  parseScript,
+  seedScriptForAction,
+} from '../../events/eventScript'
 import { useEditorStore } from '../../store/editorStore'
 import { useUIStore } from '../../store/uiStore'
 import { AccordionSection } from './AccordionSection'
-
-const EVENT_ACTIONS = [
-  { label: 'Navigate', value: 'navigate' },
-  { label: 'Open URL', value: 'openUrl' },
-  { label: 'Scroll to element', value: 'scrollTo' },
-  { label: 'Submit form', value: 'submitForm' },
-  { label: 'Toggle visibility', value: 'toggleVisibility' },
-  { label: 'Set variable', value: 'setVar' },
-  { label: 'Math', value: 'math' },
-  { label: 'String', value: 'string' },
-  { label: 'Formula', value: 'formula' },
-  { label: 'Clear variable', value: 'clearVar' },
-  { label: 'Clear all variables', value: 'clearVars' },
-  { label: 'Custom', value: 'custom' },
-  { label: 'Handle click (log)', value: 'handleClick' },
-] as const
-
-const MATH_OPS = [
-  { label: 'Add (a + b)', value: 'add' },
-  { label: 'Subtract (a − b)', value: 'sub' },
-  { label: 'Multiply (a × b)', value: 'mul' },
-  { label: 'Divide (a ÷ b)', value: 'div' },
-  { label: 'Modulo (a % b)', value: 'mod' },
-  { label: 'Min', value: 'min' },
-  { label: 'Max', value: 'max' },
-  { label: 'Absolute (a)', value: 'abs' },
-  { label: 'Round (a)', value: 'round' },
-  { label: 'Floor (a)', value: 'floor' },
-  { label: 'Ceil (a)', value: 'ceil' },
-  { label: 'Percent (a × b%)', value: 'percent' },
-] as const
-
-const STRING_OPS = [
-  { label: 'Concat (a + b)', value: 'concat' },
-  { label: 'Uppercase', value: 'upper' },
-  { label: 'Lowercase', value: 'lower' },
-  { label: 'Trim', value: 'trim' },
-  { label: 'Replace (a, find b, with c)', value: 'replace' },
-  { label: 'Slice (a, start b, end c)', value: 'slice' },
-  { label: 'Length', value: 'length' },
-  { label: 'Template (resolve {{vars}})', value: 'template' },
-] as const
-
-const inputClass = 'rounded-md border border-gray-300 px-3 py-2 text-sm'
-const labelClass = 'text-sm font-medium text-gray-700'
-const hintClass = 'text-[11px] text-gray-400'
 
 function getEventDef(
   events: Record<string, unknown> | undefined,
@@ -59,357 +21,6 @@ function getEventDef(
   return raw as JsonEventDefinition
 }
 
-function ScopeField({
-  payload,
-  onChange,
-}: {
-  payload: Record<string, unknown>
-  onChange: (payload: Record<string, unknown>) => void
-}) {
-  const raw = String(payload.scope ?? 'global')
-  const value =
-    raw === 'session' ? 'global' : raw === 'memory' ? 'temporary' : raw
-
-  return (
-    <label className="flex flex-col gap-1">
-      <span className={labelClass}>Scope</span>
-      <select
-        className={inputClass}
-        value={value === 'temporary' ? 'temporary' : 'global'}
-        onChange={(e) => onChange({ ...payload, scope: e.target.value })}
-      >
-        <option value="global">Global (all pages)</option>
-        <option value="temporary">Temporary (this page only)</option>
-      </select>
-    </label>
-  )
-}
-
-function KeyField({
-  payload,
-  onChange,
-  hint,
-}: {
-  payload: Record<string, unknown>
-  onChange: (payload: Record<string, unknown>) => void
-  hint?: string
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className={labelClass}>Variable key</span>
-      <input
-        className={inputClass}
-        value={String(payload.key ?? '')}
-        placeholder="total"
-        onChange={(e) => onChange({ ...payload, key: e.target.value })}
-      />
-      {hint && <span className={hintClass}>{hint}</span>}
-    </label>
-  )
-}
-
-function PayloadFields({
-  action,
-  payload,
-  onChange,
-}: {
-  action: string
-  payload: Record<string, unknown>
-  onChange: (payload: Record<string, unknown>) => void
-}) {
-  function setField(key: string, value: string) {
-    onChange({ ...payload, [key]: value || undefined })
-  }
-
-  if (action === 'navigate' || action === 'openUrl') {
-    return (
-      <>
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>Href</span>
-          <input
-            className={inputClass}
-            value={String(payload.href ?? '')}
-            onChange={(e) => setField('href', e.target.value)}
-            placeholder="#section or /path — supports {{vars.x}}"
-          />
-        </label>
-        {action === 'openUrl' && (
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>Target</span>
-            <select
-              className={inputClass}
-              value={String(payload.target ?? '_blank')}
-              onChange={(e) => setField('target', e.target.value)}
-            >
-              <option value="_blank">New tab</option>
-              <option value="_self">Same tab</option>
-            </select>
-          </label>
-        )}
-      </>
-    )
-  }
-
-  if (action === 'scrollTo' || action === 'toggleVisibility') {
-    return (
-      <>
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>Element ID</span>
-          <input
-            className={inputClass}
-            value={String(payload.elementId ?? '')}
-            onChange={(e) => setField('elementId', e.target.value)}
-          />
-        </label>
-        {action === 'scrollTo' && (
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>Behavior</span>
-            <select
-              className={inputClass}
-              value={String(payload.behavior ?? 'smooth')}
-              onChange={(e) => setField('behavior', e.target.value)}
-            >
-              <option value="smooth">Smooth</option>
-              <option value="auto">Auto</option>
-            </select>
-          </label>
-        )}
-      </>
-    )
-  }
-
-  if (action === 'submitForm') {
-    return (
-      <label className="flex flex-col gap-1">
-        <span className={labelClass}>Form ID</span>
-        <input
-          className={inputClass}
-          value={String(payload.formId ?? '')}
-          onChange={(e) => setField('formId', e.target.value)}
-        />
-      </label>
-    )
-  }
-
-  if (action === 'setVar') {
-    const fromEvent = payload.fromEvent === true || payload.value === '$event'
-    return (
-      <>
-        <KeyField
-          payload={payload}
-          onChange={onChange}
-          hint="Use in text as {{vars.total}} or {{total}}"
-        />
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <input
-            type="checkbox"
-            checked={fromEvent}
-            onChange={(e) => {
-              if (e.target.checked) {
-                onChange({ ...payload, fromEvent: true, value: '$event' })
-              } else {
-                const next = { ...payload }
-                delete next.fromEvent
-                if (next.value === '$event') next.value = ''
-                onChange(next)
-              }
-            }}
-          />
-          Use field value ($event)
-        </label>
-        {!fromEvent && (
-          <label className="flex flex-col gap-1">
-            <span className={labelClass}>Value</span>
-            <input
-              className={inputClass}
-              value={String(payload.value ?? '')}
-              onChange={(e) => setField('value', e.target.value)}
-              placeholder="hello / 42 / {{vars.other}} / @other / cmp_xxx.value"
-            />
-          </label>
-        )}
-        {fromEvent && (
-          <span className={hintClass}>
-            On change/click, stores the input&apos;s current value into the variable.
-            For calculators, prefer Math with component paths like cmp_input.value + cmp_other.value.
-          </span>
-        )}
-        <ScopeField payload={payload} onChange={onChange} />
-      </>
-    )
-  }
-
-  if (action === 'clearVar') {
-    return (
-      <>
-        <KeyField payload={payload} onChange={onChange} />
-        <ScopeField payload={payload} onChange={onChange} />
-      </>
-    )
-  }
-
-  if (action === 'clearVars') {
-    return (
-      <>
-        <p className={hintClass}>Choose which variables to clear.</p>
-        <ScopeField payload={payload} onChange={onChange} />
-      </>
-    )
-  }
-
-  if (action === 'math') {
-    return (
-      <>
-        <KeyField payload={payload} onChange={onChange} hint="Result is stored in this variable" />
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>Expression (optional)</span>
-          <input
-            className={`${inputClass} font-mono text-xs`}
-            value={String(payload.expr ?? '')}
-            onChange={(e) => setField('expr', e.target.value)}
-            placeholder="cmp_input_a.value + cmp_input_b.value"
-          />
-          <span className={hintClass}>
-            If set, overrides op / a / b below. Use componentId.value for inputs, or {'{{vars.x}}'} for named vars.
-          </span>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>Operation</span>
-          <select
-            className={inputClass}
-            value={String(payload.op ?? 'add')}
-            onChange={(e) => setField('op', e.target.value)}
-          >
-            {MATH_OPS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>A</span>
-          <input
-            className={inputClass}
-            value={String(payload.a ?? '')}
-            onChange={(e) => setField('a', e.target.value)}
-            placeholder="10 or {{vars.price}} or cmp_xxx.value"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>B</span>
-          <input
-            className={inputClass}
-            value={String(payload.b ?? '')}
-            onChange={(e) => setField('b', e.target.value)}
-            placeholder="2"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>Decimals (optional)</span>
-          <input
-            className={inputClass}
-            type="number"
-            min={0}
-            value={String(payload.decimals ?? '')}
-            onChange={(e) => setField('decimals', e.target.value)}
-          />
-        </label>
-        <ScopeField payload={payload} onChange={onChange} />
-      </>
-    )
-  }
-
-  if (action === 'string') {
-    return (
-      <>
-        <KeyField payload={payload} onChange={onChange} />
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>Operation</span>
-          <select
-            className={inputClass}
-            value={String(payload.op ?? 'concat')}
-            onChange={(e) => setField('op', e.target.value)}
-          >
-            {STRING_OPS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>A</span>
-          <input
-            className={inputClass}
-            value={String(payload.a ?? '')}
-            onChange={(e) => setField('a', e.target.value)}
-            placeholder="Hello"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>B</span>
-          <input
-            className={inputClass}
-            value={String(payload.b ?? '')}
-            onChange={(e) => setField('b', e.target.value)}
-            placeholder=" World"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>C (replace with / slice end)</span>
-          <input
-            className={inputClass}
-            value={String(payload.c ?? '')}
-            onChange={(e) => setField('c', e.target.value)}
-          />
-        </label>
-        <ScopeField payload={payload} onChange={onChange} />
-      </>
-    )
-  }
-
-  if (action === 'formula') {
-    return (
-      <>
-        <KeyField payload={payload} onChange={onChange} />
-        <label className="flex flex-col gap-1">
-          <span className={labelClass}>Expression</span>
-          <input
-            className={`${inputClass} font-mono text-xs`}
-            value={String(payload.expr ?? '')}
-            onChange={(e) => setField('expr', e.target.value)}
-            placeholder="cmp_a.value * 1.1  or  Hello {{name}}"
-          />
-          <span className={hintClass}>Math if expression has operators; otherwise string template.</span>
-        </label>
-        <ScopeField payload={payload} onChange={onChange} />
-      </>
-    )
-  }
-
-  if (action === 'custom') {
-    return (
-      <label className="flex flex-col gap-1">
-        <span className={labelClass}>Payload (JSON)</span>
-        <textarea
-          className={`${inputClass} min-h-20 font-mono text-xs`}
-          value={JSON.stringify(payload, null, 2)}
-          onChange={(e) => {
-            try {
-              onChange(JSON.parse(e.target.value) as Record<string, unknown>)
-            } catch {
-              // keep typing
-            }
-          }}
-        />
-      </label>
-    )
-  }
-
-  return null
-}
-
 export type EventEditorFormProps = {
   nodeId: string
   eventName: string
@@ -417,7 +28,7 @@ export type EventEditorFormProps = {
   defaultAction?: string
 }
 
-/** Full event editor shown in a center workspace tab. */
+/** Full event script editor shown in a center workspace tab. */
 export function EventEditorForm({
   nodeId,
   eventName,
@@ -427,6 +38,31 @@ export function EventEditorForm({
   const node = useEditorStore((s) => s.nodes[nodeId])
   const updateNodeEvents = useEditorStore((s) => s.updateNodeEvents)
   const closeCenterTab = useUIStore((s) => s.closeCenterTab)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const def = node ? getEventDef(node.events, eventName) : null
+  const enabled = def !== null
+
+  const [script, setScript] = useState('')
+  const [parseError, setParseError] = useState<string | null>(null)
+  const syncedFromRef = useRef<string>('')
+
+  // Sync script from document when event definition changes externally
+  useEffect(() => {
+    if (!node) return
+    const current = getEventDef(node.events, eventName)
+    const fingerprint = JSON.stringify(current ?? null)
+    if (fingerprint === syncedFromRef.current) return
+    syncedFromRef.current = fingerprint
+    if (!current) {
+      setScript('')
+      setParseError(null)
+      return
+    }
+    const actions = getEventActions(current)
+    setScript(actionsToScript(actions))
+    setParseError(null)
+  }, [node, nodeId, eventName, node?.events])
 
   if (!node) {
     return (
@@ -443,11 +79,6 @@ export function EventEditorForm({
     )
   }
 
-  const def = getEventDef(node.events, eventName)
-  const enabled = def !== null
-  const action = def?.action ?? defaultAction
-  const payload = def?.payload ?? {}
-
   function setEvent(next: JsonEventDefinition | null) {
     const events = { ...node!.events }
     if (next === null) delete events[eventName]
@@ -455,83 +86,135 @@ export function EventEditorForm({
     updateNodeEvents(nodeId, events)
   }
 
-  function updateEvent(patch: Partial<JsonEventDefinition>) {
-    const current = getEventDef(node!.events, eventName) ?? {
-      action: defaultAction,
-      payload: {},
+  function persistScript(text: string, flags?: Partial<JsonEventDefinition>) {
+    const parsed = parseScript(text)
+    if (!parsed.ok) {
+      setParseError(
+        parsed.line ? `Line ${parsed.line}: ${parsed.error}` : parsed.error,
+      )
+      return
     }
-    setEvent({ ...current, ...patch })
+    setParseError(null)
+    const base = getEventDef(node!.events, eventName) ?? {
+      preventDefault: !(eventName === 'onChange' || eventName === 'onInput'),
+      stopPropagation: false,
+    }
+    const next: JsonEventDefinition = {
+      preventDefault: base.preventDefault,
+      stopPropagation: base.stopPropagation,
+      ...flags,
+      actions: parsed.actions,
+    }
+    // Drop legacy single-action fields so actions[] is the source of truth
+    delete next.action
+    delete next.payload
+    delete next.actionId
+    syncedFromRef.current = JSON.stringify(next)
+    setEvent(next)
   }
 
-  function ensureEnabled() {
-    if (enabled) return
-    const isChangeEvent = eventName === 'onChange' || eventName === 'onInput'
-    setEvent({
-      action: defaultAction,
-      payload: {},
-      preventDefault: !isChangeEvent,
-      stopPropagation: false,
+  function onScriptChange(text: string) {
+    setScript(text)
+    if (!enabled) return
+    const parsed = parseScript(text)
+    if (!parsed.ok) {
+      setParseError(
+        parsed.line ? `Line ${parsed.line}: ${parsed.error}` : parsed.error,
+      )
+      return
+    }
+    setParseError(null)
+    persistScript(text)
+  }
+
+  function insertTemplate(template: string) {
+    const el = textareaRef.current
+    const chunk = template.endsWith('\n') ? template : `${template}\n`
+    if (!el) {
+      const next = script ? `${script.replace(/\s*$/, '')}\n${chunk}` : chunk
+      setScript(next)
+      if (enabled) persistScript(next)
+      return
+    }
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const before = script.slice(0, start)
+    const after = script.slice(end)
+    const needsNewline = before.length > 0 && !before.endsWith('\n')
+    const insertion = `${needsNewline ? '\n' : ''}${chunk}`
+    const next = before + insertion + after
+    setScript(next)
+    if (enabled) persistScript(next)
+    requestAnimationFrame(() => {
+      el.focus()
+      const pos = before.length + insertion.length
+      el.setSelectionRange(pos, pos)
     })
   }
 
+  function enableEvent() {
+    const isChangeEvent = eventName === 'onChange' || eventName === 'onInput'
+    const seed = seedScriptForAction(defaultAction)
+    const parsed = parseScript(seed)
+    const next: JsonEventDefinition = {
+      actions: parsed.ok ? parsed.actions : [],
+      preventDefault: !isChangeEvent,
+      stopPropagation: false,
+    }
+    syncedFromRef.current = JSON.stringify(next)
+    setEvent(next)
+    setScript(seed)
+    setParseError(null)
+  }
+
+  const isChangeEvent = eventName === 'onChange' || eventName === 'onInput'
+
   return (
-    <div className="mx-auto w-full max-w-xl p-6">
-      <div className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Event</p>
-        <h2 className="mt-1 text-lg font-semibold text-gray-900">{eventName}</h2>
-        {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
-        <p className="mt-2 break-all text-[11px] text-gray-400">
-          {node.meta?.label ?? node.type} · {nodeId}
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <label className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-gray-800">Enabled</span>
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            checked={enabled}
-            onChange={(e) => {
-              if (e.target.checked) ensureEnabled()
-              else setEvent(null)
-            }}
-          />
-        </label>
-
-        {enabled && (
-          <>
-            <label className="flex flex-col gap-1">
-              <span className={labelClass}>Action</span>
-              <select
-                className={inputClass}
-                value={action}
-                onChange={(e) => updateEvent({ action: e.target.value, payload: {} })}
-              >
-                {EVENT_ACTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <PayloadFields
-              action={action}
-              payload={payload}
-              onChange={(next) => updateEvent({ payload: next })}
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Event</p>
+          <h2 className="text-base font-semibold text-gray-900">{eventName}</h2>
+          {description && <p className="mt-0.5 text-sm text-gray-500">{description}</p>}
+          <p className="mt-1 break-all text-[11px] text-gray-400">
+            {node.meta?.label ?? node.type} · {nodeId}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-600">
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-blue-600"
+              checked={enabled}
+              onChange={(e) => {
+                if (e.target.checked) enableEvent()
+                else {
+                  syncedFromRef.current = 'null'
+                  setEvent(null)
+                  setScript('')
+                  setParseError(null)
+                }
+              }}
             />
-
-            <div className="flex flex-wrap gap-4 border-t border-gray-100 pt-4 text-xs text-gray-600">
+            Enabled
+          </label>
+          {enabled && (
+            <>
               <label className="flex items-center gap-1.5">
                 <input
                   type="checkbox"
                   checked={
-                    eventName === 'onChange' || eventName === 'onInput'
+                    isChangeEvent
                       ? def?.preventDefault === true
                       : def?.preventDefault !== false
                   }
-                  onChange={(e) => updateEvent({ preventDefault: e.target.checked })}
+                  onChange={(e) => {
+                    const base = getEventDef(node.events, eventName)
+                    if (!base) return
+                    const next = { ...base, preventDefault: e.target.checked }
+                    syncedFromRef.current = JSON.stringify(next)
+                    setEvent(next)
+                  }}
                 />
                 preventDefault
               </label>
@@ -539,20 +222,80 @@ export function EventEditorForm({
                 <input
                   type="checkbox"
                   checked={Boolean(def?.stopPropagation)}
-                  onChange={(e) => updateEvent({ stopPropagation: e.target.checked })}
+                  onChange={(e) => {
+                    const base = getEventDef(node.events, eventName)
+                    if (!base) return
+                    const next = { ...base, stopPropagation: e.target.checked }
+                    syncedFromRef.current = JSON.stringify(next)
+                    setEvent(next)
+                  }}
                 />
                 stopPropagation
               </label>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
+      </header>
 
-        {!enabled && (
-          <p className="text-sm text-gray-500">
-            Turn on this event to choose an action and payload. Changes save to the component immediately.
-          </p>
-        )}
-      </div>
+      {!enabled ? (
+        <div className="flex flex-1 items-center justify-center p-8 text-sm text-gray-500">
+          Turn on this event to write a multi-step script.
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          <div className="flex min-w-0 flex-1 flex-col border-r border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-1.5">
+              <span className="text-xs font-medium text-gray-600">Script</span>
+              <span className="text-[10px] text-gray-400">
+                One call per line · # comments
+              </span>
+            </div>
+            <textarea
+              ref={textareaRef}
+              spellCheck={false}
+              className="min-h-0 flex-1 resize-none bg-gray-950 px-4 py-3 font-mono text-sm leading-6 text-emerald-100 outline-none placeholder:text-gray-600"
+              value={script}
+              onChange={(e) => onScriptChange(e.target.value)}
+              placeholder={'setVar("a", 1);\nnavigate("/list");'}
+            />
+            {parseError ? (
+              <p className="shrink-0 border-t border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {parseError}
+              </p>
+            ) : (
+              <p className="shrink-0 border-t border-gray-200 bg-white px-3 py-1.5 text-[11px] text-gray-400">
+                {getEventActions(def).length} step
+                {getEventActions(def).length === 1 ? '' : 's'} · saved when script is valid
+              </p>
+            )}
+          </div>
+
+          <aside className="flex w-72 shrink-0 flex-col bg-white">
+            <div className="border-b border-gray-200 px-3 py-1.5">
+              <span className="text-xs font-medium text-gray-600">Functions</span>
+              <p className="text-[10px] text-gray-400">Click to insert at cursor</p>
+            </div>
+            <ul className="min-h-0 flex-1 overflow-auto p-2">
+              {EVENT_FUNCTION_CATALOG.map((fn) => (
+                <li key={fn.action}>
+                  <button
+                    type="button"
+                    className="mb-1 w-full rounded-md border border-transparent px-2 py-1.5 text-left hover:border-gray-200 hover:bg-gray-50"
+                    onClick={() => insertTemplate(fn.template)}
+                  >
+                    <span className="block font-mono text-xs font-semibold text-blue-700">
+                      {fn.label}
+                    </span>
+                    <span className="block truncate font-mono text-[10px] text-gray-500">
+                      {fn.hint}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        </div>
+      )}
     </div>
   )
 }
@@ -578,9 +321,10 @@ export function EventsSection({ nodeId, supportedEvents }: EventsSectionProps) {
     const next = { ...node!.events }
     if (on) {
       const isChangeEvent = evt.name === 'onChange' || evt.name === 'onInput'
+      const seed = seedScriptForAction(evt.defaultAction ?? 'handleClick')
+      const parsed = parseScript(seed)
       next[evt.name] = {
-        action: evt.defaultAction ?? 'handleClick',
-        payload: {},
+        actions: parsed.ok ? parsed.actions : [],
         preventDefault: !isChangeEvent,
         stopPropagation: false,
       }
@@ -593,12 +337,13 @@ export function EventsSection({ nodeId, supportedEvents }: EventsSectionProps) {
   return (
     <AccordionSection title="Events" defaultOpen={false}>
       <p className="mb-2 text-[11px] text-gray-500">
-        Click an event to edit it in a center tab (beside Canvas).
+        Click an event to edit its script in a center tab (beside Canvas).
       </p>
       <ul className="flex flex-col gap-1.5">
         {supportedEvents.map((evt) => {
           const def = getEventDef(node.events, evt.name)
           const enabled = def !== null
+          const steps = enabled ? getEventActions(def).length : 0
           const tabId = `event:${nodeId}:${evt.name}`
           const isOpen = activeCenterTabId === tabId
 
@@ -627,7 +372,10 @@ export function EventsSection({ nodeId, supportedEvents }: EventsSectionProps) {
                     {evt.name}
                   </span>
                   <span className="block truncate text-[11px] text-gray-500">
-                    {enabled ? def?.action ?? 'configured' : 'Off'} · {evt.description}
+                    {enabled
+                      ? `${steps} step${steps === 1 ? '' : 's'}`
+                      : 'Off'}{' '}
+                    · {evt.description}
                   </span>
                 </button>
                 <label

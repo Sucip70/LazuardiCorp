@@ -30,10 +30,18 @@ export type NormalizedDocument = {
   nodes: Record<string, NormalizedNode>
 }
 
+export type JsonEventAction = {
+  action: string
+  payload?: Record<string, unknown>
+}
+
 export type JsonEventDefinition = {
+  /** Legacy single action (still supported via getEventActions). */
   action?: string
   payload?: Record<string, unknown>
   actionId?: string
+  /** Ordered multi-step script (preferred). */
+  actions?: JsonEventAction[]
   preventDefault?: boolean
   stopPropagation?: boolean
 }

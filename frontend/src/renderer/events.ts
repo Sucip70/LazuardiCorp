@@ -1,4 +1,9 @@
-import type { ActionContext, ActionHandler, JsonEventDefinition } from './types'
+import type {
+  ActionContext,
+  ActionHandler,
+  JsonEventAction,
+  JsonEventDefinition,
+} from './types'
 import {
   applyMathOp,
   applyStringOp,
@@ -21,17 +26,20 @@ const DOM_EVENT_MAP: Record<string, string> = {
   onMouseLeave: 'onMouseLeave',
 }
 
-function resolveActionHandler(
-  definition: JsonEventDefinition | string,
-  actionHandlers: Record<string, ActionHandler>,
-): ActionHandler | null {
+/** Normalize legacy single-action events and multi-step `actions` arrays. */
+export function getEventActions(
+  definition: JsonEventDefinition | string | null | undefined,
+): JsonEventAction[] {
+  if (!definition) return []
   if (typeof definition === 'string') {
-    return actionHandlers[definition] ?? null
+    return definition.trim() ? [{ action: definition, payload: {} }] : []
   }
-
+  if (Array.isArray(definition.actions)) {
+    return definition.actions.filter((a) => a && typeof a.action === 'string' && a.action.trim())
+  }
   const key = definition.actionId ?? definition.action
-  if (!key) return null
-  return actionHandlers[key] ?? null
+  if (!key) return []
+  return [{ action: key, payload: definition.payload ?? {} }]
 }
 
 export function buildEventHandlers(
@@ -52,15 +60,20 @@ export function buildEventHandlers(
 
   for (const [eventName, definition] of Object.entries(mergedEvents)) {
     const reactEvent = DOM_EVENT_MAP[eventName] ?? eventName
-    const handler = resolveActionHandler(definition, actionHandlers)
-    if (!handler) continue
+    const steps = getEventActions(definition)
+    if (steps.length === 0 && typeof definition !== 'string') {
+      // Enabled event with empty actions[] is a no-op handler (still applies preventDefault)
+      const config = definition
+      const hasEmptyActions = Array.isArray(config.actions)
+      if (!hasEmptyActions) continue
+    } else if (steps.length === 0) {
+      continue
+    }
 
     const config = typeof definition === 'string' ? {} : definition
 
     handlers[reactEvent] = (nativeEvent: unknown) => {
       const event = nativeEvent as { preventDefault?: () => void; stopPropagation?: () => void }
-      // Default preventDefault for click/submit only. On change/input/focus/blur it
-      // blocks typing in controlled and uncontrolled fields.
       const isFieldEditEvent =
         reactEvent === 'onChange' ||
         reactEvent === 'onInput' ||
@@ -86,7 +99,15 @@ export function buildEventHandlers(
         nativeEvent,
         eventValue: extractEventValue(nativeEvent),
       }
-      handler(config.payload, context)
+
+      for (const step of steps) {
+        const handler = actionHandlers[step.action]
+        if (!handler) {
+          console.warn('[runtime] unknown action', step.action)
+          continue
+        }
+        handler(step.payload, context)
+      }
     }
   }
 
