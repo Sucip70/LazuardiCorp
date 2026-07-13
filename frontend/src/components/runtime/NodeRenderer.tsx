@@ -4,6 +4,10 @@ import { resolveRenderer } from '../../renderer/registry'
 import { buildEventHandlers, defaultActionHandlers } from '../../renderer/events'
 import { bindProps, isNodeVisible } from '../../renderer/formulas'
 import {
+  getComponentStateSnapshot,
+  subscribeComponentState,
+} from '../../renderer/componentState'
+import {
   getRuntimeVarsSnapshot,
   subscribeRuntimeVars,
 } from '../../renderer/runtimeVars'
@@ -32,8 +36,9 @@ export function RuntimeNodeRenderer({
   renderChild,
   actionHandlers,
 }: NodeRendererProps) {
-  // Re-render when runtime vars change (preview bindings like {{vars.total}})
+  // Re-render when runtime vars or component instance attrs change
   useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
+  useSyncExternalStore(subscribeComponentState, getComponentStateSnapshot, getComponentStateSnapshot)
 
   const entry = resolveRenderer(node.type)
   const className = resolveClassName(node, breakpoint)

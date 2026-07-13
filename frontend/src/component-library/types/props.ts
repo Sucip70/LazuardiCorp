@@ -119,7 +119,7 @@ export type InputProps = {
   defaultValue?: string
   /** One-way display binding, e.g. "{{result}}" */
   value?: string
-  /** Two-way: write typed value into this runtime variable */
+  /** Output only: display this named runtime variable (read-only). Typed values use componentId.value. */
   bindToVar?: string
   bindScope?: 'global' | 'temporary'
   /** Hide entirely in preview */

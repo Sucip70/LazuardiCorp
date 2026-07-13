@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
-import type { Breakpoint } from '../types/editor'
+import { useEffect, useMemo } from 'react'
+import type { Breakpoint, ComponentNode } from '../types/editor'
+import { resetComponentRuntime } from './componentState'
 import { defaultActionHandlers } from './events'
 import { JsonNodeView } from './JsonNodeView'
 import { normalizeJsonInput } from './normalize'
@@ -16,6 +17,10 @@ export function JsonRenderer({
     void revision
     return normalizeJsonInput(input)
   }, [input, revision])
+
+  useEffect(() => {
+    resetComponentRuntime(document.nodes as Record<string, ComponentNode>)
+  }, [document])
 
   const handlers = useMemo(
     () => ({ ...defaultActionHandlers, ...actionHandlers }),

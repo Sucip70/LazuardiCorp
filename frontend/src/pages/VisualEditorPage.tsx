@@ -28,6 +28,7 @@ import {
   type GlobalVariableDef,
 } from '../editor/store/variablesStore'
 import { clearTemporaryVars, setRuntimeContext } from '../renderer/runtimeVars'
+import { resetComponentRuntime } from '../renderer/componentState'
 import type { PageDocument } from '../types/editor'
 
 function parseGlobalVariables(data: unknown): GlobalVariableDef[] {
@@ -116,10 +117,12 @@ export default function VisualEditorPage() {
   const applyPageDocument = useCallback(
     (pageId: string, raw: unknown) => {
       pageDocsRef.current[pageId] = raw
-      loadDocument(coerceDocument(raw))
+      const doc = coerceDocument(raw)
+      loadDocument(doc)
       setActivePageId(pageId)
       setRuntimeContext({ projectId: id ?? 'default', pageId })
       clearTemporaryVars()
+      resetComponentRuntime(doc.nodes)
     },
     [id, loadDocument, setActivePageId],
   )

@@ -1,5 +1,9 @@
 import { memo, useMemo, useSyncExternalStore } from 'react'
 import type { Breakpoint } from '../types/editor'
+import {
+  getComponentStateSnapshot,
+  subscribeComponentState,
+} from './componentState'
 import { buildEventHandlers } from './events'
 import { bindProps, isNodeVisible } from './formulas'
 import { resolveRenderer } from './registry'
@@ -42,6 +46,7 @@ export const JsonNodeView = memo(function JsonNodeView({
   actionHandlers,
 }: JsonNodeViewProps) {
   useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
+  useSyncExternalStore(subscribeComponentState, getComponentStateSnapshot, getComponentStateSnapshot)
 
   const node = nodes[nodeId]
   const entry = node ? resolveRenderer(node.type) : undefined

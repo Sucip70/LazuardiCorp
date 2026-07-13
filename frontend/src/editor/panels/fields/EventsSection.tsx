@@ -228,14 +228,14 @@ function PayloadFields({
               className={inputClass}
               value={String(payload.value ?? '')}
               onChange={(e) => setField('value', e.target.value)}
-              placeholder="hello / 42 / {{vars.other}} / @other"
+              placeholder="hello / 42 / {{vars.other}} / @other / cmp_xxx.value"
             />
           </label>
         )}
         {fromEvent && (
           <span className={hintClass}>
             On change/click, stores the input&apos;s current value into the variable.
-            Tip: prefer &quot;Bind to variable&quot; on the Input props for calculators.
+            For calculators, prefer Math with component paths like cmp_input.value + cmp_other.value.
           </span>
         )}
         <ScopeField payload={payload} onChange={onChange} />
@@ -271,9 +271,11 @@ function PayloadFields({
             className={`${inputClass} font-mono text-xs`}
             value={String(payload.expr ?? '')}
             onChange={(e) => setField('expr', e.target.value)}
-            placeholder="{{price}} * {{qty}} + 10"
+            placeholder="cmp_input_a.value + cmp_input_b.value"
           />
-          <span className={hintClass}>If set, overrides op / a / b below.</span>
+          <span className={hintClass}>
+            If set, overrides op / a / b below. Use componentId.value for inputs, or {'{{vars.x}}'} for named vars.
+          </span>
         </label>
         <label className="flex flex-col gap-1">
           <span className={labelClass}>Operation</span>
@@ -295,7 +297,7 @@ function PayloadFields({
             className={inputClass}
             value={String(payload.a ?? '')}
             onChange={(e) => setField('a', e.target.value)}
-            placeholder="10 or {{vars.price}} or @price"
+            placeholder="10 or {{vars.price}} or cmp_xxx.value"
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -381,7 +383,7 @@ function PayloadFields({
             className={`${inputClass} font-mono text-xs`}
             value={String(payload.expr ?? '')}
             onChange={(e) => setField('expr', e.target.value)}
-            placeholder="{{price}} * 1.1  or  Hello {{name}}"
+            placeholder="cmp_a.value * 1.1  or  Hello {{name}}"
           />
           <span className={hintClass}>Math if expression has operators; otherwise string template.</span>
         </label>
@@ -434,7 +436,8 @@ export function EventsSection({ nodeId, supportedEvents }: EventsSectionProps) {
     <AccordionSection title="Events" defaultOpen={false}>
       <p className="text-[11px] text-gray-500">
         In preview, bind text with {'{{vars.name}}'}, {'{{global.name}}'}, or {'{{temp.name}}'}.
-        Form inputs can use Behavior → &quot;Bind to variable&quot;, or Value (bound) like {'{{result}}'}.
+        Typed input values are available as componentId.value (e.g. cmp_abc123.value) in Math expressions.
+        Output fields use Behavior → &quot;Bind to variable&quot; to display a result var.
         Manage definitions in the Variables left panel.
       </p>
       {supportedEvents.map((evt) => {

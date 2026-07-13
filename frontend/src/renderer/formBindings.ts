@@ -1,4 +1,5 @@
-import { getVar, setVar, type VarScope } from './runtimeVars'
+import { setComponentAttr } from './componentState'
+import { getVar } from './runtimeVars'
 
 /** Extract typed value from a DOM change/input event (or checkbox checked). */
 export function extractEventValue(nativeEvent: unknown): string | boolean | number | null {
@@ -16,24 +17,20 @@ export function extractEventValue(nativeEvent: unknown): string | boolean | numb
   return target.value ?? null
 }
 
-export function scopeFromProp(raw: unknown): VarScope {
-  if (raw === 'temporary' || raw === 'memory') return 'temporary'
-  return 'global'
-}
-
 function isTruthyFlag(raw: unknown): boolean {
   return raw === true || raw === 1 || raw === 'true' || raw === '1'
 }
 
 /**
  * Resolve controlled display value for form fields.
- * - `bindToVar` → live runtime var (two-way with wrapBindToVarChange)
- * - Explicit non-empty `value` (after {{binding}} resolve) → one-way display (output)
- * - Empty `value: ""` is ignored (legacy default) so fields stay editable
+ * - `bindToVar` → one-way display from a named runtime var (output fields)
+ * - Explicit non-empty `value` (after {{binding}} resolve) → one-way display
+ * - Otherwise → live `componentState[nodeId].value` when provided via `liveValue`
  * - Unresolved `{{...}}` in edit mode → undefined (uncontrolled)
  */
 export function resolveControlledFieldValue(
   props: Record<string, unknown>,
+  liveValue?: string | number | boolean | null,
 ): string | undefined {
   const bindKey = String(props.bindToVar ?? '').trim()
   const rawValue = props.value
@@ -42,25 +39,31 @@ export function resolveControlledFieldValue(
     return undefined
   }
 
+  // Output-only: mirror a named variable
   if (bindKey) {
     const live = getVar(bindKey)
     if (live !== undefined && live !== null) return String(live)
     return String(props.defaultValue ?? '')
   }
 
-  // One-way display only when value is actually set (not legacy empty string)
+  // One-way display prop (e.g. value="{{total}}" already resolved)
   if (Object.prototype.hasOwnProperty.call(props, 'value') && rawValue !== undefined && rawValue !== null) {
     if (rawValue === '') return undefined
     return String(rawValue)
   }
 
+  // Editable input: controlled from component instance state once set
+  if (liveValue !== undefined && liveValue !== null) {
+    return String(liveValue)
+  }
+
   return undefined
 }
 
-/** True when the field is one-way bound (shows a value but typing should not edit it). */
+/** True when the field displays a bound value and should not accept typing. */
 export function isOneWayBoundField(props: Record<string, unknown>): boolean {
   const bindKey = String(props.bindToVar ?? '').trim()
-  if (bindKey) return false
+  if (bindKey) return true
   const rawValue = props.value
   if (typeof rawValue === 'string' && /\{\{/.test(rawValue)) return true
   return (
@@ -79,25 +82,33 @@ export function isFieldDisabled(props: Record<string, unknown>): boolean {
   return isTruthyFlag(props.disabled)
 }
 
-/** Sync field change into bindToVar, then call any existing onChange handler. */
-export function wrapBindToVarChange(
+/**
+ * Sync field change into component instance `.value` (addressable as `nodeId.value`),
+ * then call any existing onChange handler.
+ */
+export function wrapComponentValueChange(
+  nodeId: string,
   props: Record<string, unknown>,
   eventHandlers: Record<string, (...args: unknown[]) => void>,
 ): Record<string, (...args: unknown[]) => void> {
-  const bindKey = String(props.bindToVar ?? '').trim()
-  if (!bindKey) return eventHandlers
+  // Output fields (bindToVar) do not write instance value
+  if (String(props.bindToVar ?? '').trim()) return eventHandlers
 
-  const scope = scopeFromProp(props.bindScope)
   const prev = eventHandlers.onChange
-
   return {
     ...eventHandlers,
     onChange: (nativeEvent: unknown) => {
       const value = extractEventValue(nativeEvent)
-      setVar(bindKey, value as string | number | boolean | null, scope)
-      // Run designer onChange after syncing the var. Skip preventDefault side-effects
-      // that would block further input handling — var sync already captured the value.
+      setComponentAttr(nodeId, 'value', value as string | number | boolean | null)
       prev?.(nativeEvent)
     },
   }
+}
+
+/** @deprecated Use wrapComponentValueChange — bindToVar is output-only now. */
+export function wrapBindToVarChange(
+  _props: Record<string, unknown>,
+  eventHandlers: Record<string, (...args: unknown[]) => void>,
+): Record<string, (...args: unknown[]) => void> {
+  return eventHandlers
 }

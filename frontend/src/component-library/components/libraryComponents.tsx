@@ -1,16 +1,26 @@
 import { useId, useState, useSyncExternalStore } from 'react'
 import {
+  getComponentAttr,
+  getComponentStateSnapshot,
+  subscribeComponentState,
+} from '../../renderer/componentState'
+import {
   isFieldDisabled,
   isFieldReadOnly,
   isOneWayBoundField,
   resolveControlledFieldValue,
-  wrapBindToVarChange,
+  wrapComponentValueChange,
 } from '../../renderer/formBindings'
 import {
   getRuntimeVarsSnapshot,
   subscribeRuntimeVars,
 } from '../../renderer/runtimeVars'
 import type { RenderComponentProps } from '../../renderer/types'
+
+function useFormFieldRuntime() {
+  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
+  useSyncExternalStore(subscribeComponentState, getComponentStateSnapshot, getComponentStateSnapshot)
+}
 import {
   alertVariantClasses,
   buttonSizeClasses,
@@ -267,18 +277,21 @@ export function TabsLib({ node, children, className, style, attributes, eventHan
 const fieldClass = 'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 export function InputLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
-  // Re-render when bindToVar / {{value}} sources change (preview runtime vars)
-  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
+  useFormFieldRuntime()
   const inputId = useId()
   const helperId = useId()
   const label = String(node.props.label ?? 'Label')
   const helper = String(node.props.helperText ?? '')
-  const controlled = resolveControlledFieldValue(node.props)
-  const handlers = wrapBindToVarChange(node.props, eventHandlers)
+  const liveValue = getComponentAttr(node.id, 'value')
+  const controlled = resolveControlledFieldValue(
+    node.props,
+    liveValue !== undefined && liveValue !== null
+      ? liveValue
+      : String(node.props.defaultValue ?? ''),
+  )
+  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
   const readOnly = isFieldReadOnly(node.props)
   const disabled = isFieldDisabled(node.props)
-  // Only force a no-op onChange for truly read-only controlled fields (avoids React warnings).
-  // Never do this for editable fields — that freezes typing.
   const mergedHandlers =
     controlled !== undefined && readOnly && !handlers.onChange
       ? { ...handlers, onChange: () => {} }
@@ -310,10 +323,16 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
 }
 
 export function TextAreaLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
-  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
+  useFormFieldRuntime()
   const inputId = useId()
-  const controlled = resolveControlledFieldValue(node.props)
-  const handlers = wrapBindToVarChange(node.props, eventHandlers)
+  const liveValue = getComponentAttr(node.id, 'value')
+  const controlled = resolveControlledFieldValue(
+    node.props,
+    liveValue !== undefined && liveValue !== null
+      ? liveValue
+      : String(node.props.defaultValue ?? ''),
+  )
+  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
   const readOnly = isFieldReadOnly(node.props)
   const disabled = isFieldDisabled(node.props)
   const mergedHandlers =
@@ -347,11 +366,17 @@ export function TextAreaLib({ node, className, style, attributes, eventHandlers 
 type SelectOption = { label: string; value: string }
 
 export function SelectLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
-  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
+  useFormFieldRuntime()
   const inputId = useId()
   const options = (node.props.options as SelectOption[] | undefined) ?? []
-  const controlled = resolveControlledFieldValue(node.props)
-  const handlers = wrapBindToVarChange(node.props, eventHandlers)
+  const liveValue = getComponentAttr(node.id, 'value')
+  const controlled = resolveControlledFieldValue(
+    node.props,
+    liveValue !== undefined && liveValue !== null
+      ? liveValue
+      : String(node.props.defaultValue ?? ''),
+  )
+  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
   const disabled = isFieldDisabled(node.props) || isOneWayBoundField(node.props)
   const mergedHandlers =
     controlled !== undefined && disabled && !handlers.onChange
@@ -384,18 +409,25 @@ export function SelectLib({ node, className, style, attributes, eventHandlers }:
 }
 
 export function CheckboxLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
+  useFormFieldRuntime()
   const inputId = useId()
+  const liveValue = getComponentAttr(node.id, 'value')
+  const checked =
+    liveValue !== undefined && liveValue !== null
+      ? Boolean(liveValue)
+      : Boolean(node.props.checked)
+  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
   return (
     <div className={`flex items-start gap-2 ${className}`.trim()} style={style}>
       <input
         id={inputId}
         type="checkbox"
         name={String(node.props.name ?? 'checkbox')}
-        defaultChecked={Boolean(node.props.checked)}
+        checked={checked}
         disabled={Boolean(node.props.disabled)}
         className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
         {...attributes}
-        {...eventHandlers}
+        {...handlers}
       />
       <label htmlFor={inputId} className="text-sm text-gray-700">{String(node.props.label ?? 'Checkbox')}</label>
     </div>

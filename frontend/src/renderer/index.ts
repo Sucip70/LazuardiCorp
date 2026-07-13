@@ -3,6 +3,12 @@ export { JsonNodeView } from './JsonNodeView'
 export { normalizeJsonInput, getDocumentNodeCount } from './normalize'
 export { buildEventHandlers, defaultActionHandlers } from './events'
 export {
+  setComponentAttr,
+  getComponentAttr,
+  resetComponentRuntime,
+  setRuntimeDocument,
+} from './componentState'
+export {
   rendererRegistry,
   registerBuiltInComponents,
   registerCustomComponent,

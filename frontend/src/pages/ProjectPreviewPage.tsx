@@ -7,6 +7,7 @@ import { createEmptyDocument } from '../components/registry'
 import { RuntimeNodeRenderer } from '../components/runtime/NodeRenderer'
 import { parsePageDocument } from '../editor/utils/documentUtils'
 import { applyGlobalDefaults, clearTemporaryVars, setRuntimeContext } from '../renderer/runtimeVars'
+import { resetComponentRuntime } from '../renderer/componentState'
 import { defaultActionHandlers } from '../renderer/events'
 import { resolveTemplate } from '../renderer/formulas'
 import type { ActionHandler } from '../renderer/types'
@@ -160,13 +161,17 @@ export default function ProjectPreviewPage() {
         const res = await loadPageDocument(id, page.id)
         if (!active) return
         setActivePage(page)
-        setDoc(coerceDocument(res.document))
+        const nextDoc = coerceDocument(res.document)
+        resetComponentRuntime(nextDoc.nodes)
+        setDoc(nextDoc)
       } catch (err) {
         if (!active) return
         // Fallback to list payload if document endpoint fails
         if (page.document !== undefined) {
           setActivePage(page)
-          setDoc(coerceDocument(page.document))
+          const nextDoc = coerceDocument(page.document)
+          resetComponentRuntime(nextDoc.nodes)
+          setDoc(nextDoc)
           return
         }
         setError(err instanceof ApiError ? err.message : 'Failed to load page')
