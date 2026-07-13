@@ -26,6 +26,14 @@ export function CatalogFieldRenderer({ node, field, breakpoint }: CatalogFieldRe
       updateNodeProps(node.id, { content: value })
       return
     }
+    // Empty optional bindings must be removed — `value: ""` makes preview inputs
+    // controlled with no onChange and freezes typing.
+    const clearable =
+      field.key === 'value' || field.key === 'bindToVar' || field.key === 'showIf'
+    if (clearable && (value === '' || value === undefined || value === null)) {
+      updateNodeProps(node.id, { [field.key]: undefined })
+      return
+    }
     updateNodeProps(node.id, { [field.key]: value })
   }
 

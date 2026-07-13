@@ -456,10 +456,12 @@ export function EventsSection({ nodeId, supportedEvents }: EventsSectionProps) {
                   checked={enabled}
                   onChange={(e) => {
                     if (e.target.checked) {
+                      const isChangeEvent = evt.name === 'onChange' || evt.name === 'onInput'
                       setEvent(evt.name, {
                         action: evt.defaultAction ?? 'handleClick',
                         payload: {},
-                        preventDefault: true,
+                        // preventDefault on change blocks typing in inputs
+                        preventDefault: !isChangeEvent,
                         stopPropagation: false,
                       })
                     } else {
@@ -498,7 +500,11 @@ export function EventsSection({ nodeId, supportedEvents }: EventsSectionProps) {
                   <label className="flex items-center gap-1.5">
                     <input
                       type="checkbox"
-                      checked={def?.preventDefault !== false}
+                      checked={
+                        evt.name === 'onChange' || evt.name === 'onInput'
+                          ? def?.preventDefault === true
+                          : def?.preventDefault !== false
+                      }
                       onChange={(e) => updateEvent(evt.name, { preventDefault: e.target.checked })}
                     />
                     preventDefault

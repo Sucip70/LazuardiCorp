@@ -246,7 +246,11 @@ export const useEditorStore = create<EditorState & EditorActions>()(
         const node = state.nodes[nodeId]
         if (!node) return
         pushHistory(state)
-        node.props = { ...node.props, ...props }
+        const next = { ...node.props, ...props }
+        for (const [key, value] of Object.entries(props)) {
+          if (value === undefined) delete next[key]
+        }
+        node.props = next
       }),
 
     updateNodeStyles: (nodeId, styles) =>

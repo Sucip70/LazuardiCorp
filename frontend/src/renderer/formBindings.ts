@@ -21,10 +21,15 @@ export function scopeFromProp(raw: unknown): VarScope {
   return 'global'
 }
 
+function isTruthyFlag(raw: unknown): boolean {
+  return raw === true || raw === 1 || raw === 'true' || raw === '1'
+}
+
 /**
  * Resolve controlled display value for form fields.
  * - `bindToVar` → live runtime var (two-way with wrapBindToVarChange)
- * - Explicit `value` (after {{binding}} resolve) → one-way display (output)
+ * - Explicit non-empty `value` (after {{binding}} resolve) → one-way display (output)
+ * - Empty `value: ""` is ignored (legacy default) so fields stay editable
  * - Unresolved `{{...}}` in edit mode → undefined (uncontrolled)
  */
 export function resolveControlledFieldValue(
@@ -43,11 +48,35 @@ export function resolveControlledFieldValue(
     return String(props.defaultValue ?? '')
   }
 
+  // One-way display only when value is actually set (not legacy empty string)
   if (Object.prototype.hasOwnProperty.call(props, 'value') && rawValue !== undefined && rawValue !== null) {
+    if (rawValue === '') return undefined
     return String(rawValue)
   }
 
   return undefined
+}
+
+/** True when the field is one-way bound (shows a value but typing should not edit it). */
+export function isOneWayBoundField(props: Record<string, unknown>): boolean {
+  const bindKey = String(props.bindToVar ?? '').trim()
+  if (bindKey) return false
+  const rawValue = props.value
+  if (typeof rawValue === 'string' && /\{\{/.test(rawValue)) return true
+  return (
+    Object.prototype.hasOwnProperty.call(props, 'value') &&
+    rawValue !== undefined &&
+    rawValue !== null &&
+    rawValue !== ''
+  )
+}
+
+export function isFieldReadOnly(props: Record<string, unknown>): boolean {
+  return isTruthyFlag(props.readOnly) || isOneWayBoundField(props)
+}
+
+export function isFieldDisabled(props: Record<string, unknown>): boolean {
+  return isTruthyFlag(props.disabled)
 }
 
 /** Sync field change into bindToVar, then call any existing onChange handler. */
@@ -66,6 +95,8 @@ export function wrapBindToVarChange(
     onChange: (nativeEvent: unknown) => {
       const value = extractEventValue(nativeEvent)
       setVar(bindKey, value as string | number | boolean | null, scope)
+      // Run designer onChange after syncing the var. Skip preventDefault side-effects
+      // that would block further input handling — var sync already captured the value.
       prev?.(nativeEvent)
     },
   }

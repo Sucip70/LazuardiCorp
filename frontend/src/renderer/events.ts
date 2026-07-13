@@ -59,7 +59,20 @@ export function buildEventHandlers(
 
     handlers[reactEvent] = (nativeEvent: unknown) => {
       const event = nativeEvent as { preventDefault?: () => void; stopPropagation?: () => void }
-      if (config.preventDefault !== false && typeof event?.preventDefault === 'function') {
+      // Default preventDefault for click/submit only. On change/input/focus/blur it
+      // blocks typing in controlled and uncontrolled fields.
+      const isFieldEditEvent =
+        reactEvent === 'onChange' ||
+        reactEvent === 'onInput' ||
+        reactEvent === 'onFocus' ||
+        reactEvent === 'onBlur' ||
+        reactEvent === 'onKeyDown' ||
+        reactEvent === 'onKeyUp' ||
+        reactEvent === 'onKeyPress'
+      const shouldPreventDefault = isFieldEditEvent
+        ? config.preventDefault === true
+        : config.preventDefault !== false
+      if (shouldPreventDefault && typeof event?.preventDefault === 'function') {
         event.preventDefault()
       }
       if (config.stopPropagation && typeof event?.stopPropagation === 'function') {

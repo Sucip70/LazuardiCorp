@@ -1,5 +1,15 @@
-import { useId, useState } from 'react'
-import { resolveControlledFieldValue, wrapBindToVarChange } from '../../renderer/formBindings'
+import { useId, useState, useSyncExternalStore } from 'react'
+import {
+  isFieldDisabled,
+  isFieldReadOnly,
+  isOneWayBoundField,
+  resolveControlledFieldValue,
+  wrapBindToVarChange,
+} from '../../renderer/formBindings'
+import {
+  getRuntimeVarsSnapshot,
+  subscribeRuntimeVars,
+} from '../../renderer/runtimeVars'
 import type { RenderComponentProps } from '../../renderer/types'
 import {
   alertVariantClasses,
@@ -257,15 +267,22 @@ export function TabsLib({ node, children, className, style, attributes, eventHan
 const fieldClass = 'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 export function InputLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
+  // Re-render when bindToVar / {{value}} sources change (preview runtime vars)
+  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
   const inputId = useId()
   const helperId = useId()
   const label = String(node.props.label ?? 'Label')
   const helper = String(node.props.helperText ?? '')
   const controlled = resolveControlledFieldValue(node.props)
   const handlers = wrapBindToVarChange(node.props, eventHandlers)
-  if (controlled !== undefined && !handlers.onChange) {
-    handlers.onChange = () => {}
-  }
+  const readOnly = isFieldReadOnly(node.props)
+  const disabled = isFieldDisabled(node.props)
+  // Only force a no-op onChange for truly read-only controlled fields (avoids React warnings).
+  // Never do this for editable fields — that freezes typing.
+  const mergedHandlers =
+    controlled !== undefined && readOnly && !handlers.onChange
+      ? { ...handlers, onChange: () => {} }
+      : handlers
   const valueProps =
     controlled !== undefined
       ? { value: controlled }
@@ -279,13 +296,13 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
         type={String(node.props.inputType ?? 'text')}
         placeholder={String(node.props.placeholder ?? '')}
         required={Boolean(node.props.required)}
-        disabled={Boolean(node.props.disabled)}
-        readOnly={Boolean(node.props.readOnly)}
         aria-describedby={helper ? helperId : undefined}
         className={fieldClass}
-        {...valueProps}
         {...attributes}
-        {...handlers}
+        {...valueProps}
+        disabled={disabled}
+        readOnly={readOnly}
+        {...mergedHandlers}
       />
       {helper && <p id={helperId} className="mt-1 text-xs text-gray-500">{helper}</p>}
     </div>
@@ -293,12 +310,16 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
 }
 
 export function TextAreaLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
+  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
   const inputId = useId()
   const controlled = resolveControlledFieldValue(node.props)
   const handlers = wrapBindToVarChange(node.props, eventHandlers)
-  if (controlled !== undefined && !handlers.onChange) {
-    handlers.onChange = () => {}
-  }
+  const readOnly = isFieldReadOnly(node.props)
+  const disabled = isFieldDisabled(node.props)
+  const mergedHandlers =
+    controlled !== undefined && readOnly && !handlers.onChange
+      ? { ...handlers, onChange: () => {} }
+      : handlers
   const valueProps =
     controlled !== undefined
       ? { value: controlled }
@@ -312,12 +333,12 @@ export function TextAreaLib({ node, className, style, attributes, eventHandlers 
         rows={Number(node.props.rows ?? 4)}
         placeholder={String(node.props.placeholder ?? '')}
         required={Boolean(node.props.required)}
-        disabled={Boolean(node.props.disabled)}
-        readOnly={Boolean(node.props.readOnly)}
         className={fieldClass}
-        {...valueProps}
         {...attributes}
-        {...handlers}
+        {...valueProps}
+        disabled={disabled}
+        readOnly={readOnly}
+        {...mergedHandlers}
       />
     </div>
   )
@@ -326,13 +347,16 @@ export function TextAreaLib({ node, className, style, attributes, eventHandlers 
 type SelectOption = { label: string; value: string }
 
 export function SelectLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
+  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
   const inputId = useId()
   const options = (node.props.options as SelectOption[] | undefined) ?? []
   const controlled = resolveControlledFieldValue(node.props)
   const handlers = wrapBindToVarChange(node.props, eventHandlers)
-  if (controlled !== undefined && !handlers.onChange) {
-    handlers.onChange = () => {}
-  }
+  const disabled = isFieldDisabled(node.props) || isOneWayBoundField(node.props)
+  const mergedHandlers =
+    controlled !== undefined && disabled && !handlers.onChange
+      ? { ...handlers, onChange: () => {} }
+      : handlers
   const valueProps =
     controlled !== undefined
       ? { value: controlled }
@@ -344,11 +368,11 @@ export function SelectLib({ node, className, style, attributes, eventHandlers }:
         id={inputId}
         name={String(node.props.name ?? 'field')}
         required={Boolean(node.props.required)}
-        disabled={Boolean(node.props.disabled)}
         className={fieldClass}
-        {...valueProps}
         {...attributes}
-        {...handlers}
+        {...valueProps}
+        disabled={disabled}
+        {...mergedHandlers}
       >
         {node.props.placeholder ? <option value="">{String(node.props.placeholder)}</option> : null}
         {options.map((opt) => (
