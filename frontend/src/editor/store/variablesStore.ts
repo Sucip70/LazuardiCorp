@@ -6,12 +6,17 @@ import {
   setRuntimeContext,
   setVar,
 } from '../../renderer/runtimeVars'
+import {
+  coerceVariableValue,
+  normalizeVariableDataType,
+  type VariableDataType,
+} from '../variables/variableTypes'
 
 export type GlobalVariableDef = {
   id: string
   key: string
   defaultValue: string
-  description: string
+  dataType: VariableDataType
 }
 
 type VariablesState = {
@@ -46,6 +51,7 @@ export const useVariablesStore = create<VariablesState & VariablesActions>((set,
   upsertGlobalDef: (input) => {
     const key = input.key.trim()
     if (!key) return
+    const dataType = normalizeVariableDataType(input.dataType)
 
     set((state) => {
       const existingIdx = input.id
@@ -56,7 +62,7 @@ export const useVariablesStore = create<VariablesState & VariablesActions>((set,
         id: input.id ?? (existingIdx >= 0 ? state.globalDefs[existingIdx].id : newVarId()),
         key,
         defaultValue: input.defaultValue,
-        description: input.description ?? '',
+        dataType,
       }
 
       const list = [...state.globalDefs]
@@ -70,7 +76,7 @@ export const useVariablesStore = create<VariablesState & VariablesActions>((set,
       return { globalDefs: list }
     })
 
-    setVar(key, input.defaultValue, 'global')
+    setVar(key, coerceVariableValue(dataType, input.defaultValue), 'global')
   },
 
   removeGlobalDef: (id) => {
@@ -80,9 +86,16 @@ export const useVariablesStore = create<VariablesState & VariablesActions>((set,
   },
 
   loadGlobalDefs: (defs) => {
-    set({ globalDefs: defs })
+    const normalized = defs.map((d) => ({
+      ...d,
+      dataType: normalizeVariableDataType(d.dataType),
+    }))
+    set({ globalDefs: normalized })
     applyGlobalDefaults(
-      defs.map((d) => ({ key: d.key, defaultValue: d.defaultValue })),
+      normalized.map((d) => ({
+        key: d.key,
+        defaultValue: coerceVariableValue(d.dataType, d.defaultValue),
+      })),
     )
   },
 

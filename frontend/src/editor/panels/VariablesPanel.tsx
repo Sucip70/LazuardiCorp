@@ -9,6 +9,17 @@ import {
   subscribeRuntimeVars,
 } from '../../renderer/runtimeVars'
 import { useVariablesStore, type GlobalVariableDef } from '../store/variablesStore'
+import {
+  coerceVariableValue,
+  getVariableTypeOption,
+  normalizeVariableDataType,
+  validateVariableValue,
+  VARIABLE_TYPE_GROUP_LABELS,
+  VARIABLE_TYPE_OPTIONS,
+  variableTypeLabel,
+  type VariableDataType,
+  type VariableTypeGroup,
+} from '../variables/variableTypes'
 import { ModalPortal } from './ModalPortal'
 
 const inputClass = 'w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm'
@@ -30,7 +41,11 @@ function InfoTip({ text }: { text: string }) {
   )
 }
 
-type VariableFormPayload = { key: string; value: string; description: string }
+type VariableFormPayload = {
+  key: string
+  value: string
+  dataType: VariableDataType
+}
 
 type VariableFormModalProps = {
   open: boolean
@@ -40,6 +55,129 @@ type VariableFormModalProps = {
   existingKeys: string[]
   onClose: () => void
   onSubmit: (payload: VariableFormPayload) => void
+}
+
+function groupedTypeOptions() {
+  const groups = new Map<VariableTypeGroup, typeof VARIABLE_TYPE_OPTIONS>()
+  for (const opt of VARIABLE_TYPE_OPTIONS) {
+    const list = groups.get(opt.group) ?? []
+    list.push(opt)
+    groups.set(opt.group, list)
+  }
+  return groups
+}
+
+function DefaultValueField({
+  dataType,
+  value,
+  onChange,
+  kind,
+}: {
+  dataType: VariableDataType
+  value: string
+  onChange: (next: string) => void
+  kind: 'global' | 'temporary'
+}) {
+  const label = kind === 'global' ? 'Default value' : 'Value'
+  const opt = getVariableTypeOption(dataType)
+
+  if (dataType === 'boolean') {
+    const checked = value === 'true' || value === '1'
+    return (
+      <label className="mt-3 flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded border-gray-300 text-blue-600"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked ? 'true' : 'false')}
+        />
+        <span className="text-sm text-gray-700">{label} (boolean)</span>
+      </label>
+    )
+  }
+
+  if (dataType === 'null') {
+    return (
+      <p className="mt-3 text-xs text-gray-500">
+        Null type has no value — runtime stores <code className="font-mono">null</code>.
+      </p>
+    )
+  }
+
+  if (dataType === 'color') {
+    const hex = /^#([0-9a-fA-F]{6})$/.test(value) ? value : '#000000'
+    return (
+      <label className="mt-3 block">
+        <span className={labelClass}>{label}</span>
+        <div className="mt-1 flex items-center gap-2">
+          <input
+            type="color"
+            className="h-9 w-10 cursor-pointer rounded border border-gray-300 bg-white p-0.5"
+            value={hex}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          <input
+            className={`${inputClass} font-mono text-xs`}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="#000000"
+          />
+        </div>
+      </label>
+    )
+  }
+
+  if (dataType === 'array' || dataType === 'object' || dataType === 'json' || dataType === 'markdown' || dataType === 'richtext' || dataType === 'gradient') {
+    return (
+      <label className="mt-3 block">
+        <span className={labelClass}>{label}</span>
+        <textarea
+          className={`${inputClass} mt-1 min-h-24 font-mono text-xs`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={opt.hint}
+        />
+        <span className="mt-1 block text-[10px] text-gray-400">{opt.hint}</span>
+      </label>
+    )
+  }
+
+  const htmlType =
+    dataType === 'integer' || dataType === 'number' || dataType === 'percentage'
+      ? 'number'
+      : dataType === 'email'
+        ? 'email'
+        : dataType === 'url' || dataType === 'image' || dataType === 'video' || dataType === 'audio' || dataType === 'file'
+          ? 'url'
+          : dataType === 'date'
+            ? 'date'
+            : dataType === 'time'
+              ? 'time'
+              : dataType === 'datetime'
+                ? 'datetime-local'
+                : dataType === 'password'
+                  ? 'password'
+                  : dataType === 'phone'
+                    ? 'tel'
+                    : 'text'
+
+  const step =
+    dataType === 'integer' ? 1 : dataType === 'number' || dataType === 'percentage' ? 'any' : undefined
+
+  return (
+    <label className="mt-3 block">
+      <span className={labelClass}>{label}</span>
+      <input
+        type={htmlType}
+        step={step}
+        className={`${inputClass} mt-1 ${dataType === 'integer' || dataType === 'number' || dataType === 'cssLength' || dataType === 'font' ? 'font-mono text-xs' : ''}`}
+        placeholder={opt.emptyDefault || opt.hint}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <span className="mt-1 block text-[10px] text-gray-400">{opt.hint}</span>
+    </label>
+  )
 }
 
 function VariableFormModal({
@@ -53,20 +191,31 @@ function VariableFormModal({
 }: VariableFormModalProps) {
   const [key, setKey] = useState(initial?.key ?? '')
   const [value, setValue] = useState(initial?.value ?? '')
-  const [description, setDescription] = useState(initial?.description ?? '')
+  const [dataType, setDataType] = useState<VariableDataType>(
+    normalizeVariableDataType(initial?.dataType),
+  )
   const [error, setError] = useState<string | null>(null)
+  const typeGroups = groupedTypeOptions()
 
   useEffect(() => {
     if (!open) return
     setKey(initial?.key ?? '')
     setValue(initial?.value ?? '')
-    setDescription(initial?.description ?? '')
+    setDataType(normalizeVariableDataType(initial?.dataType))
     setError(null)
   }, [open, initial])
 
   function resetAndClose() {
     setError(null)
     onClose()
+  }
+
+  function handleTypeChange(next: VariableDataType) {
+    setDataType(next)
+    // When adding, reset to type empty default; when editing keep value unless empty
+    if (mode === 'add' || value === '') {
+      setValue(getVariableTypeOption(next).emptyDefault)
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -81,7 +230,16 @@ function VariableFormModal({
       setError('A variable with this key already exists')
       return
     }
-    onSubmit({ key: trimmed, value, description })
+    const valueError = validateVariableValue(dataType, value)
+    if (valueError) {
+      setError(valueError)
+      return
+    }
+    onSubmit({
+      key: trimmed,
+      value: dataType === 'null' ? '' : value,
+      dataType,
+    })
     resetAndClose()
   }
 
@@ -98,7 +256,7 @@ function VariableFormModal({
     <ModalPortal open={open} onClose={resetAndClose}>
       <form
         onSubmit={handleSubmit}
-        className="rounded-xl border border-gray-200 bg-white p-5 shadow-xl"
+        className="max-h-[90vh] w-full max-w-md overflow-auto rounded-xl border border-gray-200 bg-white p-5 shadow-xl"
       >
         <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
 
@@ -112,26 +270,33 @@ function VariableFormModal({
             onChange={(e) => setKey(e.target.value)}
           />
         </label>
+
         <label className="mt-3 block">
-          <span className={labelClass}>{kind === 'global' ? 'Default value' : 'Value'}</span>
-          <input
+          <span className={labelClass}>Data type</span>
+          <select
             className={`${inputClass} mt-1`}
-            placeholder="0"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
+            value={dataType}
+            onChange={(e) => handleTypeChange(e.target.value as VariableDataType)}
+          >
+            {[...typeGroups.entries()].map(([group, opts]) => (
+              <optgroup key={group} label={VARIABLE_TYPE_GROUP_LABELS[group]}>
+                {opts.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
         </label>
-        {kind === 'global' && (
-          <label className="mt-3 block">
-            <span className={labelClass}>Description</span>
-            <input
-              className={`${inputClass} mt-1`}
-              placeholder="Optional"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </label>
-        )}
+
+        <DefaultValueField
+          dataType={dataType}
+          value={value}
+          onChange={setValue}
+          kind={kind}
+        />
+
         {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 
         <div className="mt-5 flex justify-end gap-2">
@@ -215,18 +380,25 @@ function GlobalSection() {
               type="button"
               className="min-w-0 flex-1 text-left"
               onClick={() => setModal({ mode: 'edit', def })}
-              title={def.description || 'Edit variable'}
+              title={`Edit · ${variableTypeLabel(def.dataType)}`}
             >
-              <span className="block truncate font-mono text-xs font-medium text-gray-900">
-                {def.key}
+              <span className="flex items-center gap-1.5">
+                <span className="truncate font-mono text-xs font-medium text-gray-900">
+                  {def.key}
+                </span>
+                <span className="shrink-0 rounded bg-gray-100 px-1 py-0.5 text-[9px] font-medium uppercase tracking-wide text-gray-500">
+                  {variableTypeLabel(def.dataType)}
+                </span>
               </span>
-              <span className="block truncate text-[10px] text-gray-400">
+              <span className="mt-0.5 block truncate text-[10px] text-gray-400">
                 {String(live[def.key] ?? (def.defaultValue || '—'))}
               </span>
             </button>
             <button
               type="button"
-              onClick={() => setVar(def.key, def.defaultValue, 'global')}
+              onClick={() =>
+                setVar(def.key, coerceVariableValue(def.dataType, def.defaultValue), 'global')
+              }
               className="hidden rounded px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-50 group-hover:inline"
               title="Reset live value to default"
             >
@@ -253,22 +425,24 @@ function GlobalSection() {
             ? {
                 key: modal.def.key,
                 value: modal.def.defaultValue,
-                description: modal.def.description,
+                dataType: modal.def.dataType,
               }
-            : undefined
+            : modal?.mode === 'add'
+              ? { key: '', value: '', dataType: 'string' }
+              : undefined
         }
         existingKeys={defs.map((d) => d.key)}
         onClose={() => setModal(null)}
-        onSubmit={({ key, value, description }) => {
+        onSubmit={({ key, value, dataType }) => {
           if (modal?.mode === 'edit' && modal.def) {
             upsert({
               id: modal.def.id,
               key,
               defaultValue: value,
-              description,
+              dataType,
             })
           } else {
-            upsert({ key, defaultValue: value, description })
+            upsert({ key, defaultValue: value, dataType })
           }
         }}
       />
@@ -281,16 +455,19 @@ function TemporarySection() {
   const activePageId = useVariablesStore((s) => s.activePageId)
   const live = getTemporaryVars()
   const entries = Object.entries(live)
-  const [modal, setModal] = useState<{ mode: 'add' | 'edit'; key?: string; value?: string } | null>(
-    null,
-  )
+  const [modal, setModal] = useState<{
+    mode: 'add' | 'edit'
+    key?: string
+    value?: string
+    dataType?: VariableDataType
+  } | null>(null)
 
   return (
     <section className="pb-2">
       <SectionHeader
         title="Temporary"
         tip={`Only for the current page (${activePageId}). Cleared when the page changes. Bind with {{temp.name}}.`}
-        onAdd={() => setModal({ mode: 'add' })}
+        onAdd={() => setModal({ mode: 'add', dataType: 'string' })}
         trailing={
           entries.length > 0 ? (
             <button
@@ -316,7 +493,14 @@ function TemporarySection() {
             <button
               type="button"
               className="min-w-0 flex-1 text-left"
-              onClick={() => setModal({ mode: 'edit', key, value: String(value ?? '') })}
+              onClick={() =>
+                setModal({
+                  mode: 'edit',
+                  key,
+                  value: value === null ? '' : String(value),
+                  dataType: typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : 'string',
+                })
+              }
               title="Edit variable"
             >
               <span className="block truncate font-mono text-xs font-medium text-gray-900">
@@ -343,17 +527,23 @@ function TemporarySection() {
         kind="temporary"
         mode={modal?.mode ?? 'add'}
         initial={
-          modal?.key !== undefined
-            ? { key: modal.key, value: modal.value ?? '', description: '' }
-            : undefined
+          modal?.mode === 'edit' && modal.key !== undefined
+            ? {
+                key: modal.key,
+                value: modal.value ?? '',
+                dataType: modal.dataType ?? 'string',
+              }
+            : modal?.mode === 'add'
+              ? { key: '', value: '', dataType: 'string' }
+              : undefined
         }
-        existingKeys={entries.map(([key]) => key)}
+        existingKeys={entries.map(([k]) => k)}
         onClose={() => setModal(null)}
-        onSubmit={({ key, value }) => {
+        onSubmit={({ key, value, dataType }) => {
           if (modal?.mode === 'edit' && modal.key && modal.key !== key) {
             clearVar(modal.key, 'temporary')
           }
-          setVar(key, value, 'temporary')
+          setVar(key, coerceVariableValue(dataType, value), 'temporary')
         }}
       />
     </section>

@@ -27,6 +27,7 @@ import {
   useVariablesStore,
   type GlobalVariableDef,
 } from '../editor/store/variablesStore'
+import { normalizeVariableDataType } from '../editor/variables/variableTypes'
 import { clearTemporaryVars, setRuntimeContext } from '../renderer/runtimeVars'
 import { resetComponentRuntime } from '../renderer/componentState'
 import type { PageDocument } from '../types/editor'
@@ -64,7 +65,7 @@ function parseGlobalVariables(data: unknown): GlobalVariableDef[] {
         id: typeof row.id === 'string' ? row.id : `var_${index}_${key}`,
         key,
         defaultValue: row.defaultValue == null ? '' : String(row.defaultValue),
-        description: typeof row.description === 'string' ? row.description : '',
+        dataType: normalizeVariableDataType(row.dataType),
       } satisfies GlobalVariableDef
     })
     .filter((item): item is GlobalVariableDef => item !== null)
