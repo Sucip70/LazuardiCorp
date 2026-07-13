@@ -5,8 +5,10 @@ import type { JsonEventDefinition } from '../../../renderer/types'
 import {
   actionsToScript,
   EVENT_FUNCTION_CATALOG,
+  FUNCTION_CATEGORY_LABELS,
   parseScript,
   seedScriptForAction,
+  type FunctionCategory,
 } from '../../events/eventScript'
 import { useEditorStore } from '../../store/editorStore'
 import { useUIStore } from '../../store/uiStore'
@@ -45,6 +47,7 @@ export function EventEditorForm({
 
   const [script, setScript] = useState('')
   const [parseError, setParseError] = useState<string | null>(null)
+  const [functionQuery, setFunctionQuery] = useState('')
   const syncedFromRef = useRef<string>('')
 
   // Sync script from document when event definition changes externally
@@ -270,29 +273,91 @@ export function EventEditorForm({
             )}
           </div>
 
-          <aside className="flex w-72 shrink-0 flex-col bg-white">
-            <div className="border-b border-gray-200 px-3 py-1.5">
+          <aside className="flex w-80 shrink-0 flex-col bg-white">
+            <div className="shrink-0 border-b border-gray-200 px-3 py-1.5">
               <span className="text-xs font-medium text-gray-600">Functions</span>
-              <p className="text-[10px] text-gray-400">Click to insert at cursor</p>
+              <p className="text-[10px] text-gray-400">Hover for how to use · click to insert</p>
+              <input
+                type="search"
+                value={functionQuery}
+                onChange={(e) => setFunctionQuery(e.target.value)}
+                placeholder="Search functions…"
+                className="mt-1.5 w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-800 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                aria-label="Search functions"
+              />
             </div>
-            <ul className="min-h-0 flex-1 overflow-auto p-2">
-              {EVENT_FUNCTION_CATALOG.map((fn) => (
-                <li key={fn.action}>
-                  <button
-                    type="button"
-                    className="mb-1 w-full rounded-md border border-transparent px-2 py-1.5 text-left hover:border-gray-200 hover:bg-gray-50"
-                    onClick={() => insertTemplate(fn.template)}
-                  >
-                    <span className="block font-mono text-xs font-semibold text-blue-700">
-                      {fn.label}
-                    </span>
-                    <span className="block truncate font-mono text-[10px] text-gray-500">
-                      {fn.hint}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <div className="min-h-0 flex-1 overflow-auto p-2">
+              {(() => {
+                const q = functionQuery.trim().toLowerCase()
+                const categories = [
+                  'variables',
+                  'math',
+                  'string',
+                  'regex',
+                  'array',
+                  'object',
+                  'logic',
+                  'navigation',
+                  'dom',
+                  'debug',
+                ] as FunctionCategory[]
+
+                let anyVisible = false
+                const sections = categories.map((category) => {
+                  const items = EVENT_FUNCTION_CATALOG.filter((f) => {
+                    if (f.category !== category) return false
+                    if (!q) return true
+                    const hay = [
+                      f.label,
+                      f.hint,
+                      f.action,
+                      f.howTo,
+                      FUNCTION_CATEGORY_LABELS[f.category],
+                    ]
+                      .join(' ')
+                      .toLowerCase()
+                    return hay.includes(q)
+                  })
+                  if (items.length === 0) return null
+                  anyVisible = true
+                  return (
+                    <div key={category} className="mb-3">
+                      <p className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                        {FUNCTION_CATEGORY_LABELS[category]}
+                      </p>
+                      <ul>
+                        {items.map((fn) => (
+                          <li key={fn.id}>
+                            <button
+                              type="button"
+                              title={fn.howTo}
+                              className="mb-0.5 w-full rounded-md border border-transparent px-2 py-1.5 text-left hover:border-gray-200 hover:bg-gray-50"
+                              onClick={() => insertTemplate(fn.template)}
+                            >
+                              <span className="block font-mono text-xs font-semibold text-blue-700">
+                                {fn.label}
+                              </span>
+                              <span className="block truncate font-mono text-[10px] text-gray-500">
+                                {fn.hint}
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )
+                })
+
+                if (!anyVisible) {
+                  return (
+                    <p className="px-2 py-4 text-center text-[11px] text-gray-400">
+                      No functions match &quot;{functionQuery.trim()}&quot;
+                    </p>
+                  )
+                }
+                return sections
+              })()}
+            </div>
           </aside>
         </div>
       )}

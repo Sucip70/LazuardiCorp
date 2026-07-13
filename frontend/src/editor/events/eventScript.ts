@@ -1,97 +1,15 @@
 import type { JsonEventAction } from '../../renderer/types'
+import { EVENT_FUNCTION_CATALOG } from './functionCatalog'
+
+export type { FunctionCatalogItem, FunctionCategory } from './functionCatalog'
+export {
+  EVENT_FUNCTION_CATALOG,
+  FUNCTION_CATEGORY_LABELS,
+} from './functionCatalog'
 
 export type ParseScriptResult =
   | { ok: true; actions: JsonEventAction[] }
   | { ok: false; error: string; line?: number }
-
-export type FunctionCatalogItem = {
-  action: string
-  label: string
-  hint: string
-  template: string
-}
-
-/** Insertable function catalog for the event script editor. */
-export const EVENT_FUNCTION_CATALOG: FunctionCatalogItem[] = [
-  {
-    action: 'setVar',
-    label: 'setVar',
-    hint: 'setVar("key", value)',
-    template: 'setVar("key", 0);',
-  },
-  {
-    action: 'math',
-    label: 'math',
-    hint: 'math("key", "expr")',
-    template: 'math("total", "cmp_a.value + cmp_b.value");',
-  },
-  {
-    action: 'formula',
-    label: 'formula',
-    hint: 'formula("key", "expr")',
-    template: 'formula("result", "cmp_a.value * 1.1");',
-  },
-  {
-    action: 'string',
-    label: 'string',
-    hint: 'string("key", "op", a, b?)',
-    template: 'string("name", "concat", "Hello", " World");',
-  },
-  {
-    action: 'clearVar',
-    label: 'clearVar',
-    hint: 'clearVar("key")',
-    template: 'clearVar("key");',
-  },
-  {
-    action: 'clearVars',
-    label: 'clearVars',
-    hint: 'clearVars() or clearVars("temporary")',
-    template: 'clearVars();',
-  },
-  {
-    action: 'navigate',
-    label: 'navigate',
-    hint: 'navigate("/path")',
-    template: 'navigate("/list");',
-  },
-  {
-    action: 'openUrl',
-    label: 'openUrl',
-    hint: 'openUrl("url", "_blank")',
-    template: 'openUrl("https://example.com", "_blank");',
-  },
-  {
-    action: 'scrollTo',
-    label: 'scrollTo',
-    hint: 'scrollTo("elementId")',
-    template: 'scrollTo("section-id");',
-  },
-  {
-    action: 'submitForm',
-    label: 'submitForm',
-    hint: 'submitForm("formId")',
-    template: 'submitForm("form-id");',
-  },
-  {
-    action: 'toggleVisibility',
-    label: 'toggleVisibility',
-    hint: 'toggleVisibility("elementId")',
-    template: 'toggleVisibility("element-id");',
-  },
-  {
-    action: 'custom',
-    label: 'custom',
-    hint: 'custom({ ... })',
-    template: 'custom({"note": "todo"});',
-  },
-  {
-    action: 'handleClick',
-    label: 'handleClick',
-    hint: 'handleClick()',
-    template: 'handleClick();',
-  },
-]
 
 function formatArg(value: unknown): string {
   if (value === null || value === undefined) return '""'
@@ -159,6 +77,35 @@ export function actionsToScript(actions: JsonEventAction[]): string {
           if (p.c !== undefined) args.push(formatArg(p.c))
           return `string(${args.join(', ')});`
         }
+        case 'regex':
+        case 'array':
+        case 'object':
+        case 'json': {
+          const args = [
+            formatStringish(p.key ?? ''),
+            formatStringish(p.op ?? ''),
+          ]
+          if (p.a !== undefined) args.push(formatArg(p.a))
+          if (p.b !== undefined) args.push(formatArg(p.b))
+          if (p.c !== undefined) args.push(formatArg(p.c))
+          if (p.d !== undefined) args.push(formatArg(p.d))
+          return `${step.action}(${args.join(', ')});`
+        }
+        case 'if': {
+          const args = [
+            formatStringish(p.key ?? ''),
+            formatArg(p.a ?? p.condition ?? ''),
+            formatArg(p.b ?? p.then ?? ''),
+            formatArg(p.c ?? p.else ?? ''),
+          ]
+          return `if(${args.join(', ')});`
+        }
+        case 'copyVar':
+          return `copyVar(${formatStringish(p.a ?? p.from ?? '')}, ${formatStringish(p.b ?? p.to ?? p.key ?? '')});`
+        case 'each':
+          return `each(${formatArg(p.a ?? p.source ?? '')}, ${formatStringish(p.b ?? 'item')}, ${formatStringish(p.c ?? 'index')});`
+        case 'log':
+          return `log(${formatArg(p.a ?? p.message ?? p.value ?? '')});`
         case 'navigate':
           return `navigate(${formatStringish(p.href ?? '/')});`
         case 'openUrl': {
@@ -332,6 +279,61 @@ function callToAction(name: string, args: string[], line: number): JsonEventActi
       if (args[3] !== undefined) payload.b = parseLiteral(args[3])
       if (args[4] !== undefined) payload.c = parseLiteral(args[4])
       return { action: 'string', payload }
+    }
+    case 'regex':
+    case 'array':
+    case 'object':
+    case 'json': {
+      if (args.length < 2) {
+        throw Object.assign(new Error(`${name} requires key and op`), { line })
+      }
+      const payload: Record<string, unknown> = {
+        key: String(parseLiteral(args[0])),
+        op: String(parseLiteral(args[1])),
+      }
+      if (args[2] !== undefined) payload.a = parseLiteral(args[2])
+      if (args[3] !== undefined) payload.b = parseLiteral(args[3])
+      if (args[4] !== undefined) payload.c = parseLiteral(args[4])
+      if (args[5] !== undefined) payload.d = parseLiteral(args[5])
+      return { action: name, payload }
+    }
+    case 'if': {
+      if (args.length < 4) {
+        throw Object.assign(new Error('if requires key, condition, then, else'), { line })
+      }
+      return {
+        action: 'if',
+        payload: {
+          key: String(parseLiteral(args[0])),
+          a: parseLiteral(args[1]),
+          b: parseLiteral(args[2]),
+          c: parseLiteral(args[3]),
+        },
+      }
+    }
+    case 'copyVar': {
+      if (args.length < 2) throw Object.assign(new Error('copyVar requires from and to'), { line })
+      return {
+        action: 'copyVar',
+        payload: { a: String(parseLiteral(args[0])), b: String(parseLiteral(args[1])) },
+      }
+    }
+    case 'each': {
+      if (args.length < 1) throw Object.assign(new Error('each requires source'), { line })
+      return {
+        action: 'each',
+        payload: {
+          a: parseLiteral(args[0]),
+          b: args[1] !== undefined ? String(parseLiteral(args[1])) : 'item',
+          c: args[2] !== undefined ? String(parseLiteral(args[2])) : 'index',
+        },
+      }
+    }
+    case 'log': {
+      return {
+        action: 'log',
+        payload: { a: args[0] !== undefined ? parseLiteral(args[0]) : '' },
+      }
     }
     case 'navigate': {
       if (args.length < 1) throw Object.assign(new Error('navigate requires href'), { line })

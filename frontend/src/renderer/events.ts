@@ -14,7 +14,19 @@ import {
   type StringOp,
 } from './formulas'
 import { extractEventValue } from './formBindings'
-import { clearAllVars, clearTemporaryVars, clearVar, setVar, type VarScope } from './runtimeVars'
+import {
+  applyArrayOp,
+  applyObjectOp,
+  applyRegexOp,
+  isTruthyCondition,
+  parseDataValue,
+  resolveData,
+  toStoreValue,
+  type ArrayOp,
+  type ObjectOp,
+  type RegexOp,
+} from './dataOps'
+import { clearAllVars, clearTemporaryVars, clearVar, getVar, setVar, type VarScope } from './runtimeVars'
 
 const DOM_EVENT_MAP: Record<string, string> = {
   onClick: 'onClick',
@@ -256,5 +268,110 @@ export const defaultActionHandlers: Record<string, ActionHandler> = {
       return
     }
     setVar(key, resolveTemplate(expr), scopeFromPayload(payload))
+  },
+
+  /** Regex: test | match | replace | split | exec → result in key */
+  regex: (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+    const op = String(payload?.op ?? 'test') as RegexOp
+    const result = applyRegexOp(
+      op,
+      resolveValue(payload?.a ?? payload?.input ?? ''),
+      resolveValue(payload?.b ?? payload?.pattern ?? ''),
+      payload?.c ?? payload?.flags ?? payload?.replacement,
+      payload?.d ?? payload?.replacementFlags,
+    )
+    setVar(key, result, scopeFromPayload(payload))
+  },
+
+  /** Array ops — source may be a var name, JSON string, or binding. Result in key. */
+  array: (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+    const op = String(payload?.op ?? 'length') as ArrayOp
+    const a = resolveData(payload?.a ?? payload?.source)
+    const b = payload?.b !== undefined ? resolveData(payload.b) : undefined
+    const c = payload?.c !== undefined ? resolveData(payload.c) : undefined
+    const result = applyArrayOp(
+      op,
+      a as never,
+      b as never,
+      c as never,
+    )
+    setVar(key, result, scopeFromPayload(payload))
+  },
+
+  /** Object ops — get/set/merge/keys/… Result in key. */
+  object: (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+    const op = String(payload?.op ?? 'keys') as ObjectOp
+    const a = resolveData(payload?.a ?? payload?.source)
+    const b = payload?.b !== undefined ? resolveData(payload.b) : undefined
+    const c = payload?.c !== undefined ? resolveData(payload.c) : undefined
+    const result = applyObjectOp(op, a as never, b as never, c as never)
+    setVar(key, result, scopeFromPayload(payload))
+  },
+
+  /** json("key", "parse"|"stringify", value) */
+  json: (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+    const op = String(payload?.op ?? 'parse')
+    const raw = payload?.a ?? payload?.value ?? ''
+    if (op === 'stringify') {
+      setVar(key, toStoreValue(resolveData(raw)), scopeFromPayload(payload))
+      return
+    }
+    setVar(key, toStoreValue(parseDataValue(resolveValue(raw))), scopeFromPayload(payload))
+  },
+
+  /** if("out", condition, thenValue, elseValue) */
+  'if': (payload) => {
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!key) return
+    const ok = isTruthyCondition(payload?.a ?? payload?.condition)
+    const chosen = ok ? (payload?.b ?? payload?.then) : (payload?.c ?? payload?.else)
+    setVar(key, resolveValue(chosen ?? null) as string | number | boolean | null, scopeFromPayload(payload))
+  },
+
+  /** copyVar("fromKey", "toKey") */
+  copyVar: (payload) => {
+    const from = typeof payload?.a === 'string' ? payload.a.trim() : typeof payload?.from === 'string' ? payload.from.trim() : ''
+    const to = typeof payload?.b === 'string' ? payload.b.trim() : typeof payload?.to === 'string' ? payload.to.trim() : typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (!from || !to) return
+    const value = getVar(from)
+    setVar(to, (value ?? null) as string | number | boolean | null, scopeFromPayload(payload))
+  },
+
+  /**
+   * each: loop helper — for each item in source array, set itemKey/indexKey then
+   * you typically use array map/filter instead for transforms.
+   * each("items", "item", "index") sets item/index to the *last* element only
+   * when used alone; prefer array("out","map",...).
+   * For true iteration side-effects, use array map/filter/forEach style ops.
+   */
+  each: (payload) => {
+    const source = resolveData(payload?.a ?? payload?.source)
+    const itemKey = typeof payload?.b === 'string' ? payload.b.trim() : 'item'
+    const indexKey = typeof payload?.c === 'string' ? payload.c.trim() : 'index'
+    const arr = Array.isArray(parseDataValue(source))
+      ? (parseDataValue(source) as unknown[])
+      : []
+    // Store full list + length for scripting patterns
+    const listKey = typeof payload?.key === 'string' ? payload.key.trim() : ''
+    if (listKey) setVar(listKey, toStoreValue(arr), scopeFromPayload(payload))
+    setVar(`${itemKey}s_length`, arr.length, scopeFromPayload(payload))
+    if (arr.length > 0) {
+      setVar(itemKey, toStoreValue(arr[arr.length - 1]), scopeFromPayload(payload))
+      setVar(indexKey, arr.length - 1, scopeFromPayload(payload))
+    }
+  },
+
+  /** log("message") or log(expr) — console helper for debugging scripts */
+  log: (payload) => {
+    const msg = payload?.a ?? payload?.message ?? payload?.value ?? payload
+    console.info('[script]', resolveData(msg))
   },
 }
