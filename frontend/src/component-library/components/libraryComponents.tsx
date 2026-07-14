@@ -1,14 +1,16 @@
 import { useId, useState, useSyncExternalStore } from 'react'
 import {
-  getComponentAttr,
+  getLiveComponentAttr,
   getComponentStateSnapshot,
   subscribeComponentState,
 } from '../../renderer/componentState'
 import {
+  getEditableDefaultString,
   isFieldDisabled,
   isFieldReadOnly,
   isOneWayBoundField,
-  resolveControlledFieldValue,
+  resolveOneWayDisplayValue,
+  sanitizeFieldAttributes,
   wrapComponentValueChange,
 } from '../../renderer/formBindings'
 import {
@@ -17,6 +19,7 @@ import {
 } from '../../renderer/runtimeVars'
 import type { RenderComponentProps } from '../../renderer/types'
 
+/** Subscribe so one-way bound fields (and siblings showing vars) refresh. */
 function useFormFieldRuntime() {
   useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
   useSyncExternalStore(subscribeComponentState, getComponentStateSnapshot, getComponentStateSnapshot)
@@ -273,6 +276,9 @@ export function TabsLib({ node, children, className, style, attributes, eventHan
 }
 
 // ─── Forms ──────────────────────────────────────────────────
+// Editable fields are uncontrolled (like Radio) so typing isn't reset by React.
+// Values sync outward via wrapComponentValueChange → componentState / bindToVar.
+// Only one-way `value` bindings use controlled `value={…}` + readOnly.
 
 const fieldClass = 'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
 
@@ -282,24 +288,16 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
   const helperId = useId()
   const label = String(node.props.label ?? 'Label')
   const helper = String(node.props.helperText ?? '')
-  const liveValue = getComponentAttr(node.id, 'value')
-  const controlled = resolveControlledFieldValue(
-    node.props,
-    liveValue !== undefined && liveValue !== null
-      ? liveValue
-      : String(node.props.defaultValue ?? ''),
-  )
-  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
+  const safeAttrs = sanitizeFieldAttributes(attributes)
+  const oneWay = resolveOneWayDisplayValue(node.props)
   const readOnly = isFieldReadOnly(node.props)
   const disabled = isFieldDisabled(node.props)
+  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
   const mergedHandlers =
-    controlled !== undefined && readOnly && !handlers.onChange
-      ? { ...handlers, onChange: () => {} }
+    oneWay !== undefined || readOnly
+      ? { ...handlers, onChange: handlers.onChange ?? (() => {}) }
       : handlers
-  const valueProps =
-    controlled !== undefined
-      ? { value: controlled }
-      : { defaultValue: String(node.props.defaultValue ?? '') }
+
   return (
     <div className={className} style={style}>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">{label}</label>
@@ -311,10 +309,11 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
         required={Boolean(node.props.required)}
         aria-describedby={helper ? helperId : undefined}
         className={fieldClass}
-        {...attributes}
-        {...valueProps}
+        {...safeAttrs}
+        {...(oneWay !== undefined
+          ? { value: oneWay, readOnly: true }
+          : { defaultValue: getEditableDefaultString(node.props), readOnly })}
         disabled={disabled}
-        readOnly={readOnly}
         {...mergedHandlers}
       />
       {helper && <p id={helperId} className="mt-1 text-xs text-gray-500">{helper}</p>}
@@ -325,24 +324,16 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
 export function TextAreaLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
   useFormFieldRuntime()
   const inputId = useId()
-  const liveValue = getComponentAttr(node.id, 'value')
-  const controlled = resolveControlledFieldValue(
-    node.props,
-    liveValue !== undefined && liveValue !== null
-      ? liveValue
-      : String(node.props.defaultValue ?? ''),
-  )
-  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
+  const safeAttrs = sanitizeFieldAttributes(attributes)
+  const oneWay = resolveOneWayDisplayValue(node.props)
   const readOnly = isFieldReadOnly(node.props)
   const disabled = isFieldDisabled(node.props)
+  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
   const mergedHandlers =
-    controlled !== undefined && readOnly && !handlers.onChange
-      ? { ...handlers, onChange: () => {} }
+    oneWay !== undefined || readOnly
+      ? { ...handlers, onChange: handlers.onChange ?? (() => {}) }
       : handlers
-  const valueProps =
-    controlled !== undefined
-      ? { value: controlled }
-      : { defaultValue: String(node.props.defaultValue ?? '') }
+
   return (
     <div className={className} style={style}>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">{String(node.props.label ?? 'Label')}</label>
@@ -353,10 +344,11 @@ export function TextAreaLib({ node, className, style, attributes, eventHandlers 
         placeholder={String(node.props.placeholder ?? '')}
         required={Boolean(node.props.required)}
         className={fieldClass}
-        {...attributes}
-        {...valueProps}
+        {...safeAttrs}
+        {...(oneWay !== undefined
+          ? { value: oneWay, readOnly: true }
+          : { defaultValue: getEditableDefaultString(node.props), readOnly })}
         disabled={disabled}
-        readOnly={readOnly}
         {...mergedHandlers}
       />
     </div>
@@ -369,23 +361,13 @@ export function SelectLib({ node, className, style, attributes, eventHandlers }:
   useFormFieldRuntime()
   const inputId = useId()
   const options = (node.props.options as SelectOption[] | undefined) ?? []
-  const liveValue = getComponentAttr(node.id, 'value')
-  const controlled = resolveControlledFieldValue(
-    node.props,
-    liveValue !== undefined && liveValue !== null
-      ? liveValue
-      : String(node.props.defaultValue ?? ''),
-  )
-  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
+  const safeAttrs = sanitizeFieldAttributes(attributes)
+  const oneWay = resolveOneWayDisplayValue(node.props)
   const disabled = isFieldDisabled(node.props) || isOneWayBoundField(node.props)
+  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
   const mergedHandlers =
-    controlled !== undefined && disabled && !handlers.onChange
-      ? { ...handlers, onChange: () => {} }
-      : handlers
-  const valueProps =
-    controlled !== undefined
-      ? { value: controlled }
-      : { defaultValue: String(node.props.defaultValue ?? '') }
+    disabled && !handlers.onChange ? { ...handlers, onChange: () => {} } : handlers
+
   return (
     <div className={className} style={style}>
       <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">{String(node.props.label ?? 'Label')}</label>
@@ -394,8 +376,10 @@ export function SelectLib({ node, className, style, attributes, eventHandlers }:
         name={String(node.props.name ?? 'field')}
         required={Boolean(node.props.required)}
         className={fieldClass}
-        {...attributes}
-        {...valueProps}
+        {...safeAttrs}
+        {...(oneWay !== undefined
+          ? { value: oneWay }
+          : { defaultValue: getEditableDefaultString(node.props) })}
         disabled={disabled}
         {...mergedHandlers}
       >
@@ -411,22 +395,24 @@ export function SelectLib({ node, className, style, attributes, eventHandlers }:
 export function CheckboxLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
   useFormFieldRuntime()
   const inputId = useId()
-  const liveValue = getComponentAttr(node.id, 'value')
-  const checked =
+  const safeAttrs = sanitizeFieldAttributes(attributes)
+  const liveValue = getLiveComponentAttr(node.id, 'value')
+  const defaultChecked =
     liveValue !== undefined && liveValue !== null
       ? Boolean(liveValue)
       : Boolean(node.props.checked)
   const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
+
   return (
     <div className={`flex items-start gap-2 ${className}`.trim()} style={style}>
       <input
         id={inputId}
         type="checkbox"
         name={String(node.props.name ?? 'checkbox')}
-        checked={checked}
+        defaultChecked={defaultChecked}
         disabled={Boolean(node.props.disabled)}
         className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        {...attributes}
+        {...safeAttrs}
         {...handlers}
       />
       <label htmlFor={inputId} className="text-sm text-gray-700">{String(node.props.label ?? 'Checkbox')}</label>
@@ -440,6 +426,7 @@ export function RadioLib({ node, className, style, attributes, eventHandlers }: 
   const horizontal = node.props.orientation === 'horizontal'
   const options = (node.props.options as RadioOption[] | undefined) ?? []
   const name = String(node.props.name ?? 'radio')
+  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
   return (
     <fieldset className={className} style={style} {...attributes}>
       <legend className="text-sm font-medium text-gray-700">{String(node.props.legend ?? 'Choose one')}</legend>
@@ -455,7 +442,7 @@ export function RadioLib({ node, className, style, attributes, eventHandlers }: 
                 value={opt.value}
                 defaultChecked={node.props.defaultValue === opt.value}
                 className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                {...eventHandlers}
+                {...handlers}
               />
               <label htmlFor={id} className="text-sm text-gray-700">{opt.label}</label>
             </div>

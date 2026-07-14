@@ -5,6 +5,7 @@ export { buildEventHandlers, defaultActionHandlers, getEventActions } from './ev
 export {
   setComponentAttr,
   getComponentAttr,
+  getLiveComponentAttr,
   resetComponentRuntime,
   setRuntimeDocument,
 } from './componentState'

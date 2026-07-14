@@ -70,15 +70,34 @@ export function setComponentAttr(nodeId: string, key: string, value: AttrValue) 
   notify()
 }
 
+/** Live instance attr only — does not fall back to document props. */
+export function getLiveComponentAttr(
+  nodeId: string,
+  key: string,
+): AttrValue | undefined {
+  return instanceAttrs.get(nodeId)?.[key]
+}
+
 export function getComponentAttr(
   nodeId: string,
   key: string,
 ): AttrValue | undefined {
-  const live = instanceAttrs.get(nodeId)?.[key]
+  const live = getLiveComponentAttr(nodeId, key)
   if (live !== undefined) return live
 
   const node = documentNodes[nodeId]
   if (!node) return undefined
+
+  // For `.value`, prefer defaultValue — props.value is one-way display binding.
+  if (key === 'value') {
+    const def = node.props?.defaultValue
+    if (def === undefined || def === null) return undefined
+    if (typeof def === 'string' || typeof def === 'number' || typeof def === 'boolean') {
+      return def
+    }
+    return String(def)
+  }
+
   const fromProps = node.props?.[key]
   if (fromProps === undefined || fromProps === null) return undefined
   if (
