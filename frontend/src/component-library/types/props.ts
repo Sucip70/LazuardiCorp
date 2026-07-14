@@ -157,6 +157,21 @@ export type SelectProps = {
   bindScope?: 'global' | 'temporary'
 }
 
+export type ComboboxProps = {
+  name: string
+  label: string
+  options: SelectOption[]
+  placeholder?: string
+  emptyText?: string
+  required?: boolean
+  disabled?: boolean
+  readOnly?: boolean
+  defaultValue?: string
+  value?: string
+  bindToVar?: string
+  bindScope?: 'global' | 'temporary'
+}
+
 export type CheckboxProps = {
   name: string
   label: string
@@ -235,6 +250,7 @@ export type ComponentPropsMap = {
   Input: InputProps
   TextArea: TextAreaProps
   Select: SelectProps
+  Combobox: ComboboxProps
   Checkbox: CheckboxProps
   Radio: RadioGroupProps
   Navbar: NavbarProps

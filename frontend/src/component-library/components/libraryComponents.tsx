@@ -1,4 +1,14 @@
-import { useId, useState, useSyncExternalStore } from 'react'
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+  type FocusEvent,
+  type KeyboardEvent,
+} from 'react'
 import {
   getLiveComponentAttr,
   getComponentStateSnapshot,
@@ -281,6 +291,7 @@ export function TabsLib({ node, children, className, style, attributes, eventHan
 // Only one-way `value` bindings use controlled `value={…}` + readOnly.
 
 const fieldClass = 'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
+const fieldClassFlush = 'w-full rounded-md border border-gray-300 px-3 py-2 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 export function InputLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
   useFormFieldRuntime()
@@ -388,6 +399,175 @@ export function SelectLib({ node, className, style, attributes, eventHandlers }:
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
+    </div>
+  )
+}
+
+function labelForOption(options: SelectOption[], value: string): string {
+  return options.find((o) => o.value === value)?.label ?? value
+}
+
+/** Searchable dropdown — filter the list as you type, commit on select. */
+export function ComboboxLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
+  useFormFieldRuntime()
+  const inputId = useId()
+  const listboxId = useId()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const options = (node.props.options as SelectOption[] | undefined) ?? []
+  const safeAttrs = sanitizeFieldAttributes(attributes)
+  const oneWay = resolveOneWayDisplayValue(node.props)
+  const disabled = isFieldDisabled(node.props) || isOneWayBoundField(node.props)
+  const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
+  const placeholder = String(node.props.placeholder ?? 'Search…')
+  const emptyText = String(node.props.emptyText ?? 'No matches')
+
+  const initialValue = oneWay ?? getEditableDefaultString(node.props)
+  const [selectedValue, setSelectedValue] = useState(initialValue)
+  const [query, setQuery] = useState(() =>
+    initialValue ? labelForOption(options, initialValue) : '',
+  )
+  const [open, setOpen] = useState(false)
+  const [highlight, setHighlight] = useState(0)
+
+  // Keep display in sync when one-way bound value changes externally
+  useEffect(() => {
+    if (oneWay === undefined) return
+    setSelectedValue(oneWay)
+    setQuery(labelForOption(options, oneWay))
+    // options identity changes each render — only re-run when the bound string changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, [oneWay])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q || !open) return options
+    return options.filter(
+      (o) =>
+        o.label.toLowerCase().includes(q) ||
+        String(o.value).toLowerCase().includes(q),
+    )
+  }, [options, query, open])
+
+  useEffect(() => {
+    if (!open) return
+    function onDocPointer(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocPointer)
+    return () => document.removeEventListener('mousedown', onDocPointer)
+  }, [open])
+
+  useEffect(() => {
+    setHighlight(0)
+  }, [query, open])
+
+  function commit(value: string) {
+    setSelectedValue(value)
+    setQuery(labelForOption(options, value))
+    setOpen(false)
+    handlers.onChange?.({ target: { value, type: 'text' } })
+  }
+
+  function onInputChange(e: ChangeEvent<HTMLInputElement>) {
+    if (disabled) return
+    setQuery(e.target.value)
+    setOpen(true)
+  }
+
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (disabled) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setOpen(true)
+      setHighlight((h) => Math.min(h + 1, Math.max(filtered.length - 1, 0)))
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlight((h) => Math.max(h - 1, 0))
+      return
+    }
+    if (e.key === 'Enter' && open && filtered[highlight]) {
+      e.preventDefault()
+      commit(filtered[highlight].value)
+      return
+    }
+    if (e.key === 'Escape') {
+      setOpen(false)
+      setQuery(selectedValue ? labelForOption(options, selectedValue) : '')
+    }
+  }
+
+  return (
+    <div className={className} style={style} ref={rootRef}>
+      <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
+        {String(node.props.label ?? 'Label')}
+      </label>
+      <div className="relative mt-1">
+        <input
+          id={inputId}
+          type="text"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            open && filtered[highlight] ? `${listboxId}-opt-${highlight}` : undefined
+          }
+          autoComplete="off"
+          placeholder={placeholder}
+          required={Boolean(node.props.required) && !selectedValue}
+          disabled={disabled}
+          readOnly={Boolean(oneWay) || Boolean(node.props.readOnly)}
+          className={fieldClassFlush}
+          {...safeAttrs}
+          value={query}
+          onChange={onInputChange}
+          onFocus={() => {
+            if (!disabled && oneWay === undefined) setOpen(true)
+            handlers.onFocus?.({} as never)
+          }}
+          onBlur={handlers.onBlur as ((e: FocusEvent<HTMLInputElement>) => void) | undefined}
+          onKeyDown={onKeyDown}
+        />
+        <span
+          className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400"
+          aria-hidden
+        >
+          ▾
+        </span>
+        {open && !disabled && oneWay === undefined ? (
+          <ul
+            id={listboxId}
+            role="listbox"
+            className="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 text-sm shadow-lg"
+          >
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-gray-400">{emptyText}</li>
+            ) : (
+              filtered.map((opt, i) => (
+                <li
+                  key={opt.value}
+                  id={`${listboxId}-opt-${i}`}
+                  role="option"
+                  aria-selected={opt.value === selectedValue}
+                  className={`cursor-pointer px-3 py-2 ${
+                    i === highlight ? 'bg-blue-50 text-blue-700' : 'text-gray-800 hover:bg-gray-50'
+                  }`}
+                  onMouseEnter={() => setHighlight(i)}
+                  onMouseDown={(ev) => {
+                    ev.preventDefault()
+                    commit(opt.value)
+                  }}
+                >
+                  {opt.label}
+                </li>
+              ))
+            )}
+          </ul>
+        ) : null}
+      </div>
+      <input type="hidden" name={String(node.props.name ?? 'field')} value={selectedValue} readOnly />
     </div>
   )
 }

@@ -94,6 +94,8 @@ func (r *Renderer) renderNode(id string) (string, error) {
 		return r.renderTextArea(node), nil
 	case "Select":
 		return r.renderSelect(node), nil
+	case "Combobox":
+		return r.renderCombobox(node), nil
 	case "Checkbox":
 		return r.renderCheckbox(node), nil
 	case "Radio":
@@ -519,6 +521,40 @@ func (r *Renderer) renderSelect(node ComponentNode) string {
 		b.WriteString(fmt.Sprintf(`    <option value="%s">%s</option>`+"\n", escapeAttr(val), escape(lbl)))
 	}
 	b.WriteString("  </select>\n</div>\n")
+	return b.String()
+}
+
+func (r *Renderer) renderCombobox(node ComponentNode) string {
+	label := propString(node.Props, "label", "Label")
+	name := propString(node.Props, "name", "field")
+	options := propSlice(node.Props, "options")
+	placeholder := propString(node.Props, "placeholder", "Search…")
+	defaultVal := propString(node.Props, "defaultValue", "")
+	listID := "combo-list-" + node.ID
+	inputID := "combo-" + node.ID
+	var b strings.Builder
+	b.WriteString(r.openAttrs(node, "div", ""))
+	b.WriteString(">\n")
+	b.WriteString(fmt.Sprintf(`  <label for="%s" class="laz-label">%s</label>`+"\n", inputID, escape(label)))
+	b.WriteString(fmt.Sprintf(`  <input id="%s" name="%s" type="text" list="%s" class="laz-field" placeholder="%s" autocomplete="off"`,
+		inputID, escapeAttr(name), listID, escapeAttr(placeholder)))
+	if defaultVal != "" {
+		b.WriteString(fmt.Sprintf(` value="%s"`, escapeAttr(defaultVal)))
+	}
+	if propBool(node.Props, "required") {
+		b.WriteString(" required")
+	}
+	if propBool(node.Props, "disabled") {
+		b.WriteString(" disabled")
+	}
+	b.WriteString(" />\n")
+	b.WriteString(fmt.Sprintf(`  <datalist id="%s">`+"\n", listID))
+	for _, opt := range options {
+		val := propString(opt, "value", "")
+		lbl := propString(opt, "label", val)
+		b.WriteString(fmt.Sprintf(`    <option value="%s">%s</option>`+"\n", escapeAttr(val), escape(lbl)))
+	}
+	b.WriteString("  </datalist>\n</div>\n")
 	return b.String()
 }
 
