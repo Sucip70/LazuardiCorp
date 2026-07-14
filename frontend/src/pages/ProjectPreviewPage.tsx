@@ -6,7 +6,7 @@ import { getProject, getProjectV1 } from '../api/projects'
 import { createEmptyDocument } from '../components/registry'
 import { RuntimeNodeRenderer } from '../components/runtime/NodeRenderer'
 import { parsePageDocument } from '../editor/utils/documentUtils'
-import { applyGlobalDefaults, clearTemporaryVars, setRuntimeContext } from '../renderer/runtimeVars'
+import { clearTemporaryVars, setRuntimeContext } from '../renderer/runtimeVars'
 import { resetComponentRuntime } from '../renderer/componentState'
 import { defaultActionHandlers } from '../renderer/events'
 import { resolveTemplate } from '../renderer/formulas'
@@ -31,38 +31,6 @@ function coerceDocument(raw: unknown): PageDocument {
     return createEmptyDocument()
   }
   return parsed
-}
-
-function parseGlobalVariables(data: unknown): { key: string; defaultValue: string }[] {
-  if (!data || typeof data !== 'object') return []
-  const root = data as Record<string, unknown>
-  const fromSettings = (() => {
-    const settings = root.settings
-    if (!settings || typeof settings !== 'object') return null
-    const variables = (settings as Record<string, unknown>).variables
-    if (!variables || typeof variables !== 'object') return null
-    return (variables as Record<string, unknown>).global
-  })()
-  const global = Array.isArray(fromSettings)
-    ? fromSettings
-    : (() => {
-        const variables = root.variables
-        if (!variables || typeof variables !== 'object') return null
-        return (variables as Record<string, unknown>).global
-      })()
-  if (!Array.isArray(global)) return []
-  return global
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null
-      const row = item as Record<string, unknown>
-      const key = typeof row.key === 'string' ? row.key.trim() : ''
-      if (!key) return null
-      return {
-        key,
-        defaultValue: row.defaultValue == null ? '' : String(row.defaultValue),
-      }
-    })
-    .filter((item): item is { key: string; defaultValue: string } => item !== null)
 }
 
 function findPageByPath(pages: PageRecord[], path: string): PageRecord | undefined {
@@ -120,11 +88,7 @@ export default function ProjectPreviewPage() {
         )
         const list = pagesRes.pages ?? []
         setPages(list)
-
-        const fromV1 = projectV1 ? parseGlobalVariables(projectV1) : []
-        const globals =
-          fromV1.length > 0 ? fromV1 : parseGlobalVariables(project.data)
-        applyGlobalDefaults(globals)
+        // Global live values come from page events (setVar / onStart), not project defaults.
       } catch (err) {
         if (!active) return
         setError(err instanceof ApiError ? err.message : 'Failed to load preview')

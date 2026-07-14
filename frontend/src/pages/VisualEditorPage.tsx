@@ -64,7 +64,6 @@ function parseGlobalVariables(data: unknown): GlobalVariableDef[] {
       return {
         id: typeof row.id === 'string' ? row.id : `var_${index}_${key}`,
         key,
-        defaultValue: row.defaultValue == null ? '' : String(row.defaultValue),
         dataType: normalizeVariableDataType(row.dataType),
       } satisfies GlobalVariableDef
     })

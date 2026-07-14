@@ -1,22 +1,21 @@
 import { create } from 'zustand'
 import {
-  applyGlobalDefaults,
   clearTemporaryVars,
   clearVar,
   setRuntimeContext,
-  setVar,
 } from '../../renderer/runtimeVars'
 import {
-  coerceVariableValue,
   normalizeVariableDataType,
   type VariableDataType,
 } from '../variables/variableTypes'
 
+/** Project-defined global variable schema (no starting value — set via page setVar). */
 export type GlobalVariableDef = {
   id: string
   key: string
-  defaultValue: string
   dataType: VariableDataType
+  /** @deprecated Unused in UI — kept empty for older project JSON round-trips. */
+  defaultValue?: string
 }
 
 type VariablesState = {
@@ -61,7 +60,6 @@ export const useVariablesStore = create<VariablesState & VariablesActions>((set,
       const next: GlobalVariableDef = {
         id: input.id ?? (existingIdx >= 0 ? state.globalDefs[existingIdx].id : newVarId()),
         key,
-        defaultValue: input.defaultValue,
         dataType,
       }
 
@@ -75,8 +73,7 @@ export const useVariablesStore = create<VariablesState & VariablesActions>((set,
       }
       return { globalDefs: list }
     })
-
-    setVar(key, coerceVariableValue(dataType, input.defaultValue), 'global')
+    // Do not setVar here — starting values come from page events (setVar / onStart).
   },
 
   removeGlobalDef: (id) => {
@@ -87,16 +84,12 @@ export const useVariablesStore = create<VariablesState & VariablesActions>((set,
 
   loadGlobalDefs: (defs) => {
     const normalized = defs.map((d) => ({
-      ...d,
+      id: d.id,
+      key: d.key,
       dataType: normalizeVariableDataType(d.dataType),
     }))
     set({ globalDefs: normalized })
-    applyGlobalDefaults(
-      normalized.map((d) => ({
-        key: d.key,
-        defaultValue: coerceVariableValue(d.dataType, d.defaultValue),
-      })),
-    )
+    // Live globals are populated by page scripts (setVar), not project defaults.
   },
 
   resetVariables: () => {
@@ -105,5 +98,9 @@ export const useVariablesStore = create<VariablesState & VariablesActions>((set,
 }))
 
 export function serializeGlobalVariables(): GlobalVariableDef[] {
-  return useVariablesStore.getState().globalDefs
+  return useVariablesStore.getState().globalDefs.map(({ id, key, dataType }) => ({
+    id,
+    key,
+    dataType,
+  }))
 }
