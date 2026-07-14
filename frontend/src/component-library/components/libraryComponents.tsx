@@ -41,6 +41,8 @@ import {
   iconGlyph,
   layoutClasses,
   mergeAria,
+  overflowClass,
+  scrollSizeStyle,
 } from '../utils/styleHelpers'
 
 function maxWidthClass(value: unknown): string {
@@ -58,8 +60,15 @@ function maxWidthClass(value: unknown): string {
 export function ContainerLib(props: RenderComponentProps) {
   const { node, children, className, style, attributes, eventHandlers } = props
   const aria = mergeAria(attributes, node.props)
+  const overflow = overflowClass(node.props.overflow)
+  const scrollStyle = scrollSizeStyle(node.props)
   return (
-    <div className={`mx-auto w-full ${maxWidthClass(node.props.maxWidth)} ${className}`} style={style} {...aria} {...eventHandlers}>
+    <div
+      className={`mx-auto w-full ${maxWidthClass(node.props.maxWidth)} ${overflow} ${className}`.trim()}
+      style={{ ...scrollStyle, ...style }}
+      {...aria}
+      {...eventHandlers}
+    >
       {children}
     </div>
   )
@@ -67,8 +76,14 @@ export function ContainerLib(props: RenderComponentProps) {
 
 export function RowLib(props: RenderComponentProps) {
   const { node, children, className, style, attributes, eventHandlers } = props
+  const scrollStyle = scrollSizeStyle(node.props)
   return (
-    <div className={`${layoutClasses(node.props, 'row')} ${className}`} style={style} {...attributes} {...eventHandlers}>
+    <div
+      className={`${layoutClasses(node.props, 'row')} ${className}`}
+      style={{ ...scrollStyle, ...style }}
+      {...attributes}
+      {...eventHandlers}
+    >
       {children}
     </div>
   )
@@ -76,8 +91,14 @@ export function RowLib(props: RenderComponentProps) {
 
 export function ColumnLib(props: RenderComponentProps) {
   const { node, children, className, style, attributes, eventHandlers } = props
+  const scrollStyle = scrollSizeStyle(node.props)
   return (
-    <div className={`${layoutClasses(node.props, 'col')} ${className}`} style={style} {...attributes} {...eventHandlers}>
+    <div
+      className={`${layoutClasses(node.props, 'col')} ${className}`}
+      style={{ ...scrollStyle, ...style }}
+      {...attributes}
+      {...eventHandlers}
+    >
       {children}
     </div>
   )
@@ -88,10 +109,12 @@ export function SectionLib(props: RenderComponentProps) {
   const titleId = useId()
   const title = String(node.props.title ?? '')
   const subtitle = String(node.props.subtitle ?? '')
+  const overflow = overflowClass(node.props.overflow)
+  const scrollStyle = scrollSizeStyle(node.props)
   return (
     <section
-      className={className}
-      style={style}
+      className={`${overflow} ${className}`.trim()}
+      style={{ ...scrollStyle, ...style }}
       aria-labelledby={title ? titleId : undefined}
       {...attributes}
       {...eventHandlers}

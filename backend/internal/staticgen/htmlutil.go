@@ -36,6 +36,18 @@ func inlineCSS(css map[string]string) string {
 	return strings.Join(parts, "; ")
 }
 
+func joinInlineStyles(parts ...string) string {
+	var out []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		p = strings.TrimSuffix(p, ";")
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return strings.Join(out, "; ")
+}
+
 func camelToKebab(s string) string {
 	var b strings.Builder
 	for i, r := range s {

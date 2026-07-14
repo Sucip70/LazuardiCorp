@@ -37,9 +37,44 @@ export function layoutClasses(props: Record<string, unknown>, direction: 'row' |
     align,
     justify,
     props.wrap ? 'flex-wrap' : '',
+    overflowClass(props.overflow),
   ]
     .filter(Boolean)
     .join(' ')
+}
+
+/** Map layout overflow prop → Tailwind overflow classes. */
+export function overflowClass(raw: unknown): string {
+  switch (String(raw ?? 'visible')) {
+    case 'vertical':
+      return 'overflow-y-auto overflow-x-hidden'
+    case 'horizontal':
+      return 'overflow-x-auto overflow-y-hidden'
+    case 'both':
+      return 'overflow-auto'
+    case 'hidden':
+      return 'overflow-hidden'
+    default:
+      return ''
+  }
+}
+
+/** Optional size clamps so overflow scrolling can activate. */
+export function scrollSizeStyle(props: Record<string, unknown>): Record<string, string> {
+  const style: Record<string, string> = {}
+  const maxHeight = typeof props.maxHeight === 'string' ? props.maxHeight.trim() : ''
+  const maxWidth = typeof props.scrollMaxWidth === 'string' ? props.scrollMaxWidth.trim() : ''
+  if (maxHeight) style.maxHeight = maxHeight
+  if (maxWidth) style.maxWidth = maxWidth
+  const overflow = String(props.overflow ?? 'visible')
+  // min-h-0 helps flex children actually shrink and scroll
+  if (overflow === 'vertical' || overflow === 'both') {
+    style.minHeight = style.minHeight ?? '0'
+  }
+  if (overflow === 'horizontal' || overflow === 'both') {
+    style.minWidth = style.minWidth ?? '0'
+  }
+  return style
 }
 
 export function mergeAria(

@@ -7,6 +7,12 @@ export type LayoutBaseProps = {
   align?: 'start' | 'center' | 'end' | 'stretch'
   justify?: 'start' | 'center' | 'end' | 'between' | 'around'
   padding?: 'none' | 'sm' | 'md' | 'lg'
+  /** Scroll when children exceed the box. Pair with maxHeight / scrollMaxWidth. */
+  overflow?: 'visible' | 'vertical' | 'horizontal' | 'both' | 'hidden'
+  /** CSS length, e.g. 320px or 50vh — enables vertical scrolling. */
+  maxHeight?: string
+  /** CSS length clamp for horizontal scrolling. */
+  scrollMaxWidth?: string
   ariaLabel?: string
 }
 

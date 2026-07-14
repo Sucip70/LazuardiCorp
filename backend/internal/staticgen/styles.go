@@ -135,7 +135,46 @@ func layoutClasses(props map[string]any, direction string) string {
 	if propBool(props, "wrap") {
 		parts = append(parts, "flex-wrap")
 	}
+	if oc := overflowClass(propString(props, "overflow", "visible")); oc != "" {
+		parts = append(parts, oc)
+	}
 	return joinClasses(parts...)
+}
+
+func overflowClass(value string) string {
+	switch value {
+	case "vertical":
+		return "overflow-y-auto overflow-x-hidden"
+	case "horizontal":
+		return "overflow-x-auto overflow-y-hidden"
+	case "both":
+		return "overflow-auto"
+	case "hidden":
+		return "overflow-hidden"
+	default:
+		return ""
+	}
+}
+
+func scrollInlineStyle(props map[string]any) string {
+	parts := make([]string, 0, 4)
+	if h := strings.TrimSpace(propString(props, "maxHeight", "")); h != "" {
+		parts = append(parts, "max-height:"+h)
+	}
+	if w := strings.TrimSpace(propString(props, "scrollMaxWidth", "")); w != "" {
+		parts = append(parts, "max-width:"+w)
+	}
+	overflow := propString(props, "overflow", "visible")
+	if overflow == "vertical" || overflow == "both" {
+		parts = append(parts, "min-height:0")
+	}
+	if overflow == "horizontal" || overflow == "both" {
+		parts = append(parts, "min-width:0")
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.Join(parts, ";")
 }
 
 func maxWidthClass(value string) string {

@@ -136,7 +136,7 @@ func (r *Renderer) renderChildren(ids []string) (string, error) {
 func (r *Renderer) openAttrs(node ComponentNode, tag string, extraClass string) string {
 	attrs := mergeAria(node.Attributes, node.Props)
 	className := r.resolveClasses(node, extraClass)
-	style := inlineCSS(node.Styles.CSS)
+	style := joinInlineStyles(scrollInlineStyle(node.Props), inlineCSS(node.Styles.CSS))
 	var b strings.Builder
 	b.WriteString("<")
 	b.WriteString(tag)
@@ -223,6 +223,7 @@ func (r *Renderer) renderContainer(node ComponentNode, children string) string {
 	case "grid":
 		extra = joinClasses(extra, "grid gap-2")
 	}
+	extra = joinClasses(extra, overflowClass(propString(node.Props, "overflow", "visible")))
 	return fmt.Sprintf("%s>%s</%s>\n", r.openAttrs(node, tag, extra), children, tag)
 }
 
@@ -238,8 +239,9 @@ func (r *Renderer) renderSection(node ComponentNode, children string) string {
 	title := propString(node.Props, "title", "")
 	subtitle := propString(node.Props, "subtitle", "")
 	titleID := fmt.Sprintf("section-title-%s", node.ID)
+	extra := overflowClass(propString(node.Props, "overflow", "visible"))
 	var b strings.Builder
-	b.WriteString(r.openAttrs(node, "section", ""))
+	b.WriteString(r.openAttrs(node, "section", extra))
 	if title != "" {
 		b.WriteString(fmt.Sprintf(` aria-labelledby="%s"`, titleID))
 	}

@@ -82,6 +82,10 @@ export const CSS_FIELDS = {
     { key: 'width', label: 'Width', type: 'text' as const, placeholder: 'auto' },
     { key: 'height', label: 'Height', type: 'text' as const, placeholder: 'auto' },
     { key: 'maxWidth', label: 'Max width', type: 'text' as const, placeholder: 'none' },
+    { key: 'maxHeight', label: 'Max height', type: 'text' as const, placeholder: 'none' },
+    { key: 'overflow', label: 'Overflow', type: 'select' as const, options: ['visible', 'hidden', 'auto', 'scroll'] },
+    { key: 'overflowX', label: 'Overflow X', type: 'select' as const, options: ['visible', 'hidden', 'auto', 'scroll'] },
+    { key: 'overflowY', label: 'Overflow Y', type: 'select' as const, options: ['visible', 'hidden', 'auto', 'scroll'] },
   ],
   background: [
     { key: 'backgroundColor', label: 'Background', type: 'color' as const },

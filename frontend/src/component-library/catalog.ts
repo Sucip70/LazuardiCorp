@@ -14,6 +14,34 @@ const layoutFields = [
   { key: 'justify', label: 'Justify content', type: 'select' as const, group: 'layout' as const, options: [
     { label: 'Start', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'End', value: 'end' }, { label: 'Between', value: 'between' },
   ]},
+  {
+    key: 'overflow',
+    label: 'Overflow / scroll',
+    type: 'select' as const,
+    group: 'layout' as const,
+    options: [
+      { label: 'Visible (no scroll)', value: 'visible' },
+      { label: 'Vertical', value: 'vertical' },
+      { label: 'Horizontal', value: 'horizontal' },
+      { label: 'Both', value: 'both' },
+      { label: 'Hidden (clip)', value: 'hidden' },
+    ],
+    helpText: 'When children are larger than this box, allow scrolling. Set Max height / Scroll max width so scrolling can activate.',
+  },
+  {
+    key: 'maxHeight',
+    label: 'Max height',
+    type: 'text' as const,
+    group: 'layout' as const,
+    helpText: 'Needed for vertical scroll, e.g. 320px or 50vh.',
+  },
+  {
+    key: 'scrollMaxWidth',
+    label: 'Scroll max width',
+    type: 'text' as const,
+    group: 'layout' as const,
+    helpText: 'Optional width clamp for horizontal scroll, e.g. 100% or 480px.',
+  },
   { key: 'className', label: 'Tailwind classes', type: 'className' as const, group: 'style' as const, responsive: true },
   { key: 'ariaLabel', label: 'ARIA label', type: 'text' as const, group: 'accessibility' as const },
 ]
@@ -27,7 +55,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
     description: 'Generic wrapper with max-width and padding.',
     icon: '▢',
     acceptsChildren: true,
-    defaultProps: { tag: 'div', maxWidth: 'lg', gap: 'md', padding: 'md', ariaLabel: 'Content container' },
+    defaultProps: { tag: 'div', maxWidth: 'lg', gap: 'md', padding: 'md', overflow: 'visible', ariaLabel: 'Content container' },
     defaultStyles: {
       className: 'mx-auto w-full max-w-5xl rounded-lg border border-dashed border-gray-200',
       breakpoints: {
@@ -52,7 +80,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
     description: 'Horizontal flex row; stacks on mobile by default.',
     icon: '↔',
     acceptsChildren: true,
-    defaultProps: { gap: 'md', align: 'stretch', justify: 'start', wrap: false },
+    defaultProps: { gap: 'md', align: 'stretch', justify: 'start', wrap: false, overflow: 'visible' },
     defaultStyles: {
       className: 'flex w-full',
       breakpoints: {
@@ -75,7 +103,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
     description: 'Vertical flex column.',
     icon: '↕',
     acceptsChildren: true,
-    defaultProps: { gap: 'md', align: 'stretch', justify: 'start' },
+    defaultProps: { gap: 'md', align: 'stretch', justify: 'start', overflow: 'visible' },
     defaultStyles: { className: 'flex w-full flex-col gap-4' },
     editableFields: layoutFields,
     supportedEvents: [EVENT_PRESETS.click],
@@ -88,7 +116,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
     description: 'Semantic page section with optional heading.',
     icon: '§',
     acceptsChildren: true,
-    defaultProps: { title: 'Section title', subtitle: '', tag: 'section', padding: 'lg' },
+    defaultProps: { title: 'Section title', subtitle: '', tag: 'section', padding: 'lg', overflow: 'visible' },
     defaultStyles: {
       className: 'w-full space-y-4',
       breakpoints: { mobile: { className: 'py-6' }, desktop: { className: 'py-10' } },
