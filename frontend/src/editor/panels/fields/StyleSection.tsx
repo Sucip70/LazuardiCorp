@@ -142,6 +142,9 @@ export function StyleSection({ nodeId, breakpoint }: StyleSectionProps) {
 
   return (
     <AccordionSection title="Visual Style" defaultOpen badge={breakpoint}>
+      <p className="mb-2 text-[11px] text-gray-500">
+        Gap, padding, align, and justify live here. Layout props are only max-width, wrap, and overflow/scroll.
+      </p>
       <CssGroup title="Typography" fields={CSS_FIELDS.typography} css={css} onPatch={patchCss} />
       <CssGroup title="Spacing" fields={CSS_FIELDS.spacing} css={css} onPatch={patchCss} />
       <CssGroup title="Layout" fields={CSS_FIELDS.layout} css={css} onPatch={patchCss} />

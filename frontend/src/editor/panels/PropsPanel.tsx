@@ -11,7 +11,7 @@ const ROOT_LIFECYCLE_EVENTS: SupportedEvent[] = [EVENT_PRESETS.start, EVENT_PRES
 const GROUP_ORDER = ['content', 'layout', 'style', 'behavior', 'accessibility'] as const
 const GROUP_LABELS: Record<(typeof GROUP_ORDER)[number], string> = {
   content: 'Content',
-  layout: 'Layout',
+  layout: 'Size & scroll',
   style: 'Style',
   behavior: 'Behavior',
   accessibility: 'Accessibility',
@@ -42,7 +42,7 @@ const TEXT_FALLBACK_FIELDS: EditorField[] = [
   },
 ]
 
-const DEFAULT_OPEN_GROUPS = new Set(['content'])
+const DEFAULT_OPEN_GROUPS = new Set(['content', 'layout'])
 
 function groupFields(fields: EditorField[]): Map<(typeof GROUP_ORDER)[number], EditorField[]> {
   const map = new Map<(typeof GROUP_ORDER)[number], EditorField[]>()

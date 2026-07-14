@@ -1,12 +1,8 @@
 import type { Breakpoint, StyleSet } from '../../types/editor'
 
-/** Shared layout props for flex/grid containers. */
+/** Shared layout props for containers. Spacing/flex alignment live in Visual Style. */
 export type LayoutBaseProps = {
   tag?: 'div' | 'section' | 'main' | 'article' | 'aside' | 'header' | 'footer' | 'nav'
-  gap?: 'none' | 'sm' | 'md' | 'lg'
-  align?: 'start' | 'center' | 'end' | 'stretch'
-  justify?: 'start' | 'center' | 'end' | 'between' | 'around'
-  padding?: 'none' | 'sm' | 'md' | 'lg'
   /** Scroll when children exceed the box. Pair with maxHeight / scrollMaxWidth. */
   overflow?: 'visible' | 'vertical' | 'horizontal' | 'both' | 'hidden'
   /** CSS length, e.g. 320px or 50vh — enables vertical scrolling. */

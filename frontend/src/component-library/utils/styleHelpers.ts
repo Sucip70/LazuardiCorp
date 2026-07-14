@@ -1,41 +1,8 @@
-const gapMap = {
-  none: 'gap-0',
-  sm: 'gap-2',
-  md: 'gap-4',
-  lg: 'gap-6',
-} as const
-
-const paddingMap = {
-  none: 'p-0',
-  sm: 'p-2',
-  md: 'p-4',
-  lg: 'p-6',
-} as const
-
+/** Flex direction + wrap + overflow only. Gap/padding/align/justify → Visual Style. */
 export function layoutClasses(props: Record<string, unknown>, direction: 'row' | 'col'): string {
-  const gap = gapMap[(props.gap as keyof typeof gapMap) ?? 'md']
-  const padding = paddingMap[(props.padding as keyof typeof paddingMap) ?? 'md']
-  const align = {
-    start: 'items-start',
-    center: 'items-center',
-    end: 'items-end',
-    stretch: 'items-stretch',
-  }[(props.align as string) ?? 'stretch']
-  const justify = {
-    start: 'justify-start',
-    center: 'justify-center',
-    end: 'justify-end',
-    between: 'justify-between',
-    around: 'justify-around',
-  }[(props.justify as string) ?? 'start']
-
   return [
     'flex',
     direction === 'row' ? 'flex-row' : 'flex-col',
-    gap,
-    padding,
-    align,
-    justify,
     props.wrap ? 'flex-wrap' : '',
     overflowClass(props.overflow),
   ]

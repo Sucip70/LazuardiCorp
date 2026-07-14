@@ -1,19 +1,8 @@
 import type { ComponentCatalogEntry } from './types/catalog'
 import { EVENT_PRESETS } from './types/catalog'
 
-const layoutFields = [
-  { key: 'gap', label: 'Gap', type: 'select' as const, group: 'layout' as const, options: [
-    { label: 'None', value: 'none' }, { label: 'Small', value: 'sm' }, { label: 'Medium', value: 'md' }, { label: 'Large', value: 'lg' },
-  ]},
-  { key: 'padding', label: 'Padding', type: 'select' as const, group: 'layout' as const, options: [
-    { label: 'None', value: 'none' }, { label: 'Small', value: 'sm' }, { label: 'Medium', value: 'md' }, { label: 'Large', value: 'lg' },
-  ]},
-  { key: 'align', label: 'Align items', type: 'select' as const, group: 'layout' as const, options: [
-    { label: 'Start', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'End', value: 'end' }, { label: 'Stretch', value: 'stretch' },
-  ]},
-  { key: 'justify', label: 'Justify content', type: 'select' as const, group: 'layout' as const, options: [
-    { label: 'Start', value: 'start' }, { label: 'Center', value: 'center' }, { label: 'End', value: 'end' }, { label: 'Between', value: 'between' },
-  ]},
+/** Layout accordion: only conveniences Visual Style doesn’t replace well. */
+const layoutScrollFields = [
   {
     key: 'overflow',
     label: 'Overflow / scroll',
@@ -26,7 +15,7 @@ const layoutFields = [
       { label: 'Both', value: 'both' },
       { label: 'Hidden (clip)', value: 'hidden' },
     ],
-    helpText: 'When children are larger than this box, allow scrolling. Set Max height / Scroll max width so scrolling can activate.',
+    helpText: 'When children are larger than this box, allow scrolling. Set Max height / Scroll max width so scrolling can activate. Gap, padding, and flex alignment live under Visual Style.',
   },
   {
     key: 'maxHeight',
@@ -42,6 +31,9 @@ const layoutFields = [
     group: 'layout' as const,
     helpText: 'Optional width clamp for horizontal scroll, e.g. 100% or 480px.',
   },
+]
+
+const layoutChromeFields = [
   { key: 'className', label: 'Tailwind classes', type: 'className' as const, group: 'style' as const, responsive: true },
   { key: 'ariaLabel', label: 'ARIA label', type: 'text' as const, group: 'accessibility' as const },
 ]
@@ -55,7 +47,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
     description: 'Generic wrapper with max-width and padding.',
     icon: '▢',
     acceptsChildren: true,
-    defaultProps: { tag: 'div', maxWidth: 'lg', gap: 'md', padding: 'md', overflow: 'visible', ariaLabel: 'Content container' },
+    defaultProps: { tag: 'div', maxWidth: 'lg', overflow: 'visible', ariaLabel: 'Content container' },
     defaultStyles: {
       className: 'mx-auto w-full max-w-5xl rounded-lg border border-dashed border-gray-200',
       breakpoints: {
@@ -65,10 +57,21 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
       },
     },
     editableFields: [
-      { key: 'maxWidth', label: 'Max width', type: 'select', group: 'layout', options: [
-        { label: 'Small', value: 'sm' }, { label: 'Medium', value: 'md' }, { label: 'Large', value: 'lg' }, { label: 'Full', value: 'full' },
-      ]},
-      ...layoutFields,
+      {
+        key: 'maxWidth',
+        label: 'Max width',
+        type: 'select',
+        group: 'layout',
+        options: [
+          { label: 'Small', value: 'sm' },
+          { label: 'Medium', value: 'md' },
+          { label: 'Large', value: 'lg' },
+          { label: 'Full', value: 'full' },
+        ],
+        helpText: 'Preset content width. Fine-tune gap, padding, and flex under Visual Style.',
+      },
+      ...layoutScrollFields,
+      ...layoutChromeFields,
     ],
     supportedEvents: [EVENT_PRESETS.click],
     a11yNotes: ['Use ariaLabel when the container has a semantic purpose beyond generic grouping.'],
@@ -80,9 +83,9 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
     description: 'Horizontal flex row; stacks on mobile by default.',
     icon: '↔',
     acceptsChildren: true,
-    defaultProps: { gap: 'md', align: 'stretch', justify: 'start', wrap: false, overflow: 'visible' },
+    defaultProps: { wrap: false, overflow: 'visible' },
     defaultStyles: {
-      className: 'flex w-full',
+      className: 'flex w-full items-stretch justify-start',
       breakpoints: {
         mobile: { className: 'flex-col gap-3' },
         tablet: { className: 'flex-row gap-4' },
@@ -90,8 +93,15 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
       },
     },
     editableFields: [
-      { key: 'wrap', label: 'Wrap items', type: 'boolean', group: 'layout' },
-      ...layoutFields,
+      {
+        key: 'wrap',
+        label: 'Wrap items',
+        type: 'boolean',
+        group: 'layout',
+        helpText: 'Allow items to wrap to the next line. Other flex/spacing options are in Visual Style.',
+      },
+      ...layoutScrollFields,
+      ...layoutChromeFields,
     ],
     supportedEvents: [EVENT_PRESETS.click],
     a11yNotes: ['On mobile, row content stacks vertically for readability.'],
@@ -103,9 +113,9 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
     description: 'Vertical flex column.',
     icon: '↕',
     acceptsChildren: true,
-    defaultProps: { gap: 'md', align: 'stretch', justify: 'start', overflow: 'visible' },
-    defaultStyles: { className: 'flex w-full flex-col gap-4' },
-    editableFields: layoutFields,
+    defaultProps: { overflow: 'visible' },
+    defaultStyles: { className: 'flex w-full flex-col items-stretch justify-start gap-4' },
+    editableFields: [...layoutScrollFields, ...layoutChromeFields],
     supportedEvents: [EVENT_PRESETS.click],
     a11yNotes: ['Prefer Column for stacked content sections.'],
   },
@@ -116,7 +126,7 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
     description: 'Semantic page section with optional heading.',
     icon: '§',
     acceptsChildren: true,
-    defaultProps: { title: 'Section title', subtitle: '', tag: 'section', padding: 'lg', overflow: 'visible' },
+    defaultProps: { title: 'Section title', subtitle: '', tag: 'section', overflow: 'visible' },
     defaultStyles: {
       className: 'w-full space-y-4',
       breakpoints: { mobile: { className: 'py-6' }, desktop: { className: 'py-10' } },
@@ -124,7 +134,8 @@ export const COMPONENT_CATALOG: ComponentCatalogEntry[] = [
     editableFields: [
       { key: 'title', label: 'Title', type: 'text', group: 'content', required: true },
       { key: 'subtitle', label: 'Subtitle', type: 'text', group: 'content' },
-      ...layoutFields,
+      ...layoutScrollFields,
+      ...layoutChromeFields,
     ],
     supportedEvents: [EVENT_PRESETS.click],
     a11yNotes: ['Renders as <section> with aria-labelledby pointing to the section heading.'],

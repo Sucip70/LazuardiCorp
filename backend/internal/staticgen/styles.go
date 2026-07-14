@@ -115,23 +115,12 @@ func invertDisplayBody(hidden bool) string {
 }
 
 func layoutClasses(props map[string]any, direction string) string {
-	gapMap := map[string]string{"none": "gap-0", "sm": "gap-2", "md": "gap-4", "lg": "gap-6"}
-	paddingMap := map[string]string{"none": "p-0", "sm": "p-2", "md": "p-4", "lg": "p-6"}
-	alignMap := map[string]string{"start": "items-start", "center": "items-center", "end": "items-end", "stretch": "items-stretch"}
-	justifyMap := map[string]string{"start": "justify-start", "center": "justify-center", "end": "justify-end", "between": "justify-between", "around": "justify-around"}
-
-	gap := gapMap[propString(props, "gap", "md")]
-	padding := paddingMap[propString(props, "padding", "md")]
-	align := alignMap[propString(props, "align", "stretch")]
-	justify := justifyMap[propString(props, "justify", "start")]
-
 	parts := []string{"flex"}
 	if direction == "row" {
 		parts = append(parts, "flex-row")
 	} else {
 		parts = append(parts, "flex-col")
 	}
-	parts = append(parts, gap, padding, align, justify)
 	if propBool(props, "wrap") {
 		parts = append(parts, "flex-wrap")
 	}
