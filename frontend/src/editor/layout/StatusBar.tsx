@@ -30,6 +30,7 @@ export function StatusBar({ nodeCount = 0, projectId }: StatusBarProps) {
   const toggleGrid = useUIStore((s) => s.toggleGrid)
   const saveStatus = useUIStore((s) => s.saveStatus)
   const saveMessage = useUIStore((s) => s.saveMessage)
+  const previewMode = useUIStore((s) => s.previewMode)
 
   return (
     <footer className="flex h-10 shrink-0 items-center gap-2 border-t border-gray-200 bg-white px-2 text-xs text-gray-600 sm:px-4">
@@ -41,6 +42,7 @@ export function StatusBar({ nodeCount = 0, projectId }: StatusBarProps) {
             {' · '}
             {nodeCount} nodes
             {projectId && ` · ${projectId.slice(0, 8)}`}
+            {!previewMode && ' · Alt+click runs events'}
           </>
         )}
         {saveStatus === 'saved' && !saveMessage && (

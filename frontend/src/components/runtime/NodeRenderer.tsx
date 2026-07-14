@@ -26,6 +26,40 @@ type NodeRendererProps = {
   actionHandlers?: Record<string, ActionHandler>
 }
 
+type DomLikeEvent = {
+  altKey?: boolean
+  stopPropagation?: () => void
+}
+
+/**
+ * In edit mode, event actions only run when Alt (Option on macOS) is held.
+ * Also stops pointer propagation on Alt so canvas drag-and-drop does not steal the click.
+ */
+function gateHandlersForEditMode(
+  handlers: Record<string, (...args: unknown[]) => void>,
+): Record<string, (...args: unknown[]) => void> {
+  const next: Record<string, (...args: unknown[]) => void> = {}
+
+  for (const [name, fn] of Object.entries(handlers)) {
+    next[name] = (...args: unknown[]) => {
+      const ev = args[0] as DomLikeEvent | undefined
+      if (!ev?.altKey) return
+      fn(...args)
+    }
+  }
+
+  const prevPointerDown = next.onPointerDown
+  next.onPointerDown = (...args: unknown[]) => {
+    const ev = args[0] as DomLikeEvent | undefined
+    if (ev?.altKey) {
+      ev.stopPropagation?.()
+    }
+    prevPointerDown?.(...args)
+  }
+
+  return next
+}
+
 export function RuntimeNodeRenderer({
   node,
   nodes,
@@ -49,7 +83,10 @@ export function RuntimeNodeRenderer({
     ? `${isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : 'hover:ring-1 hover:ring-blue-300'}`
     : ''
 
-  const boundProps = editable ? (node.props ?? {}) : bindProps(node.props ?? {})
+  // Display: unbound in editor so templates stay editable as text.
+  // Events: always resolve {{bindings}} so Alt+click / preview actions work.
+  const displayProps = editable ? (node.props ?? {}) : bindProps(node.props ?? {})
+  const eventProps = bindProps(node.props ?? {})
   const visible = isNodeVisible(node.props)
 
   // Preview: honor hidden / showIf. Editor: always render so you can select & edit.
@@ -59,9 +96,8 @@ export function RuntimeNodeRenderer({
 
   const handlers = { ...defaultActionHandlers, ...actionHandlers }
   const nodeEvents = (node.events ?? {}) as Record<string, JsonEventDefinition>
-  const interactiveProps = editable
-    ? {}
-    : buildEventHandlers(node.id, node.type, nodeEvents, boundProps, handlers)
+  const builtHandlers = buildEventHandlers(node.id, node.type, nodeEvents, eventProps, handlers)
+  const interactiveProps = editable ? gateHandlersForEditMode(builtHandlers) : builtHandlers
 
   const childElements =
     entry.acceptsChildren !== false && (node.children?.length ?? 0) > 0
@@ -87,7 +123,7 @@ export function RuntimeNodeRenderer({
   const Component = entry.component
   const normalizedNode = {
     ...(node as unknown as NormalizedNode),
-    props: boundProps,
+    props: displayProps,
   }
 
   return (
@@ -98,7 +134,16 @@ export function RuntimeNodeRenderer({
         editable
           ? (event) => {
               event.stopPropagation()
+              // Alt+click runs component events — skip selection
+              if (event.altKey) return
               onSelect?.(node.id)
+            }
+          : undefined
+      }
+      onPointerDown={
+        editable
+          ? (event) => {
+              if (event.altKey) event.stopPropagation()
             }
           : undefined
       }

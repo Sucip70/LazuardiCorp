@@ -151,6 +151,7 @@ export function Canvas({ previewMode = false }: CanvasProps) {
             </div>
             <p className="mt-2 text-center text-xs text-gray-400">
               {width}px · {breakpoint}
+              {editable ? ' · Alt+click to run events' : ''}
             </p>
           </div>
         </div>
