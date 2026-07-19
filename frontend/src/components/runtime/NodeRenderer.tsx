@@ -89,7 +89,7 @@ export function RuntimeNodeRenderer({
   const eventProps = bindProps(node.props ?? {})
   const visible = isNodeVisible(node.props)
 
-  // Preview: honor hidden / showIf. Editor: always render so you can select & edit.
+  // Preview: honor hidden. Editor: always render so you can select & edit.
   if (!editable && !visible) {
     return null
   }

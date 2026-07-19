@@ -119,15 +119,8 @@ export type InputProps = {
   readOnly?: boolean
   helperText?: string
   defaultValue?: string
-  /** One-way display binding, e.g. "{{result}}" */
-  value?: string
-  /** Output only: display this named runtime variable (read-only). Typed values use componentId.value. */
-  bindToVar?: string
-  bindScope?: 'global' | 'temporary'
   /** Hide entirely in preview */
   hidden?: boolean
-  /** Show only when template resolves to a truthy value, e.g. "{{total}}" */
-  showIf?: string
 }
 
 export type TextAreaProps = {
@@ -139,9 +132,6 @@ export type TextAreaProps = {
   disabled?: boolean
   readOnly?: boolean
   defaultValue?: string
-  value?: string
-  bindToVar?: string
-  bindScope?: 'global' | 'temporary'
 }
 
 export type SelectOption = { label: string; value: string }
@@ -154,9 +144,6 @@ export type SelectProps = {
   required?: boolean
   disabled?: boolean
   defaultValue?: string
-  value?: string
-  bindToVar?: string
-  bindScope?: 'global' | 'temporary'
 }
 
 export type ComboboxProps = {
@@ -169,9 +156,6 @@ export type ComboboxProps = {
   disabled?: boolean
   readOnly?: boolean
   defaultValue?: string
-  value?: string
-  bindToVar?: string
-  bindScope?: 'global' | 'temporary'
 }
 
 export type CheckboxProps = {

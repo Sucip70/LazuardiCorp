@@ -4,36 +4,19 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type ChangeEvent,
   type FocusEvent,
   type KeyboardEvent,
 } from 'react'
-import {
-  getLiveComponentAttr,
-  getComponentStateSnapshot,
-  subscribeComponentState,
-} from '../../renderer/componentState'
+import { getLiveComponentAttr } from '../../renderer/componentState'
 import {
   getEditableDefaultString,
   isFieldDisabled,
   isFieldReadOnly,
-  isOneWayBoundField,
-  resolveOneWayDisplayValue,
   sanitizeFieldAttributes,
   wrapComponentValueChange,
 } from '../../renderer/formBindings'
-import {
-  getRuntimeVarsSnapshot,
-  subscribeRuntimeVars,
-} from '../../renderer/runtimeVars'
 import type { RenderComponentProps } from '../../renderer/types'
-
-/** Subscribe so one-way bound fields (and siblings showing vars) refresh. */
-function useFormFieldRuntime() {
-  useSyncExternalStore(subscribeRuntimeVars, getRuntimeVarsSnapshot, getRuntimeVarsSnapshot)
-  useSyncExternalStore(subscribeComponentState, getComponentStateSnapshot, getComponentStateSnapshot)
-}
 import {
   alertVariantClasses,
   buttonSizeClasses,
@@ -309,28 +292,22 @@ export function TabsLib({ node, children, className, style, attributes, eventHan
 }
 
 // ─── Forms ──────────────────────────────────────────────────
-// Editable fields are uncontrolled (like Radio) so typing isn't reset by React.
-// Values sync outward via wrapComponentValueChange → componentState / bindToVar.
-// Only one-way `value` bindings use controlled `value={…}` + readOnly.
+// Uncontrolled fields (defaultValue). Typing always works.
+// onChange syncs to component instance state for events ({{cmp_id.value}}).
+// Variable sync is not built into the field — use setVar events when needed.
 
 const fieldClass = 'mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
 const fieldClassFlush = 'w-full rounded-md border border-gray-300 px-3 py-2 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500'
 
 export function InputLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
-  useFormFieldRuntime()
   const inputId = useId()
   const helperId = useId()
   const label = String(node.props.label ?? 'Label')
   const helper = String(node.props.helperText ?? '')
   const safeAttrs = sanitizeFieldAttributes(attributes)
-  const oneWay = resolveOneWayDisplayValue(node.props)
   const readOnly = isFieldReadOnly(node.props)
   const disabled = isFieldDisabled(node.props)
   const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
-  const mergedHandlers =
-    oneWay !== undefined || readOnly
-      ? { ...handlers, onChange: handlers.onChange ?? (() => {}) }
-      : handlers
 
   return (
     <div className={className} style={style}>
@@ -344,11 +321,10 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
         aria-describedby={helper ? helperId : undefined}
         className={fieldClass}
         {...safeAttrs}
-        {...(oneWay !== undefined
-          ? { value: oneWay, readOnly: true }
-          : { defaultValue: getEditableDefaultString(node.props), readOnly })}
+        defaultValue={getEditableDefaultString(node.props)}
+        readOnly={readOnly}
         disabled={disabled}
-        {...mergedHandlers}
+        {...handlers}
       />
       {helper && <p id={helperId} className="mt-1 text-xs text-gray-500">{helper}</p>}
     </div>
@@ -356,17 +332,11 @@ export function InputLib({ node, className, style, attributes, eventHandlers }: 
 }
 
 export function TextAreaLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
-  useFormFieldRuntime()
   const inputId = useId()
   const safeAttrs = sanitizeFieldAttributes(attributes)
-  const oneWay = resolveOneWayDisplayValue(node.props)
   const readOnly = isFieldReadOnly(node.props)
   const disabled = isFieldDisabled(node.props)
   const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
-  const mergedHandlers =
-    oneWay !== undefined || readOnly
-      ? { ...handlers, onChange: handlers.onChange ?? (() => {}) }
-      : handlers
 
   return (
     <div className={className} style={style}>
@@ -379,11 +349,10 @@ export function TextAreaLib({ node, className, style, attributes, eventHandlers 
         required={Boolean(node.props.required)}
         className={fieldClass}
         {...safeAttrs}
-        {...(oneWay !== undefined
-          ? { value: oneWay, readOnly: true }
-          : { defaultValue: getEditableDefaultString(node.props), readOnly })}
+        defaultValue={getEditableDefaultString(node.props)}
+        readOnly={readOnly}
         disabled={disabled}
-        {...mergedHandlers}
+        {...handlers}
       />
     </div>
   )
@@ -392,15 +361,11 @@ export function TextAreaLib({ node, className, style, attributes, eventHandlers 
 type SelectOption = { label: string; value: string }
 
 export function SelectLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
-  useFormFieldRuntime()
   const inputId = useId()
   const options = (node.props.options as SelectOption[] | undefined) ?? []
   const safeAttrs = sanitizeFieldAttributes(attributes)
-  const oneWay = resolveOneWayDisplayValue(node.props)
-  const disabled = isFieldDisabled(node.props) || isOneWayBoundField(node.props)
+  const disabled = isFieldDisabled(node.props)
   const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
-  const mergedHandlers =
-    disabled && !handlers.onChange ? { ...handlers, onChange: () => {} } : handlers
 
   return (
     <div className={className} style={style}>
@@ -411,11 +376,9 @@ export function SelectLib({ node, className, style, attributes, eventHandlers }:
         required={Boolean(node.props.required)}
         className={fieldClass}
         {...safeAttrs}
-        {...(oneWay !== undefined
-          ? { value: oneWay }
-          : { defaultValue: getEditableDefaultString(node.props) })}
+        defaultValue={getEditableDefaultString(node.props)}
         disabled={disabled}
-        {...mergedHandlers}
+        {...handlers}
       >
         {node.props.placeholder ? <option value="">{String(node.props.placeholder)}</option> : null}
         {options.map((opt) => (
@@ -432,34 +395,24 @@ function labelForOption(options: SelectOption[], value: string): string {
 
 /** Searchable dropdown — filter the list as you type, commit on select. */
 export function ComboboxLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
-  useFormFieldRuntime()
   const inputId = useId()
   const listboxId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
   const options = (node.props.options as SelectOption[] | undefined) ?? []
   const safeAttrs = sanitizeFieldAttributes(attributes)
-  const oneWay = resolveOneWayDisplayValue(node.props)
-  const disabled = isFieldDisabled(node.props) || isOneWayBoundField(node.props)
+  const disabled = isFieldDisabled(node.props)
+  const readOnly = isFieldReadOnly(node.props)
   const handlers = wrapComponentValueChange(node.id, node.props, eventHandlers)
   const placeholder = String(node.props.placeholder ?? 'Search…')
   const emptyText = String(node.props.emptyText ?? 'No matches')
 
-  const initialValue = oneWay ?? getEditableDefaultString(node.props)
+  const initialValue = getEditableDefaultString(node.props)
   const [selectedValue, setSelectedValue] = useState(initialValue)
   const [query, setQuery] = useState(() =>
     initialValue ? labelForOption(options, initialValue) : '',
   )
   const [open, setOpen] = useState(false)
   const [highlight, setHighlight] = useState(0)
-
-  // Keep display in sync when one-way bound value changes externally
-  useEffect(() => {
-    if (oneWay === undefined) return
-    setSelectedValue(oneWay)
-    setQuery(labelForOption(options, oneWay))
-    // options identity changes each render — only re-run when the bound string changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
-  }, [oneWay])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -492,13 +445,13 @@ export function ComboboxLib({ node, className, style, attributes, eventHandlers 
   }
 
   function onInputChange(e: ChangeEvent<HTMLInputElement>) {
-    if (disabled) return
+    if (disabled || readOnly) return
     setQuery(e.target.value)
     setOpen(true)
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (disabled) return
+    if (disabled || readOnly) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       setOpen(true)
@@ -541,13 +494,13 @@ export function ComboboxLib({ node, className, style, attributes, eventHandlers 
           placeholder={placeholder}
           required={Boolean(node.props.required) && !selectedValue}
           disabled={disabled}
-          readOnly={Boolean(oneWay) || Boolean(node.props.readOnly)}
+          readOnly={readOnly}
           className={fieldClassFlush}
           {...safeAttrs}
           value={query}
           onChange={onInputChange}
           onFocus={() => {
-            if (!disabled && oneWay === undefined) setOpen(true)
+            if (!disabled && !readOnly) setOpen(true)
             handlers.onFocus?.({} as never)
           }}
           onBlur={handlers.onBlur as ((e: FocusEvent<HTMLInputElement>) => void) | undefined}
@@ -559,7 +512,7 @@ export function ComboboxLib({ node, className, style, attributes, eventHandlers 
         >
           ▾
         </span>
-        {open && !disabled && oneWay === undefined ? (
+        {open && !disabled && !readOnly ? (
           <ul
             id={listboxId}
             role="listbox"
@@ -596,7 +549,6 @@ export function ComboboxLib({ node, className, style, attributes, eventHandlers 
 }
 
 export function CheckboxLib({ node, className, style, attributes, eventHandlers }: RenderComponentProps) {
-  useFormFieldRuntime()
   const inputId = useId()
   const safeAttrs = sanitizeFieldAttributes(attributes)
   const liveValue = getLiveComponentAttr(node.id, 'value')
